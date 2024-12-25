@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { createOrder, createOrderItem } from './api/api';
 import React from 'react';
+import { openStripeCheckout } from './lib/stripe';
 
 type CartItemType = {
   id: number;
@@ -87,6 +88,13 @@ export default function Cart() {
     const totalPrice = parseFloat(getTotalPrice());
 
     try{
+      await setupStripePaymentSheet(Math.floor(totalPrice * 100));
+      const result= await openStripeCheckout();
+      
+      if(!result){
+        Alert.alert('An error occurred while processing the payment');
+        return;
+      }
          await createSupabaseOrder(
         { totalPrice },
         {
@@ -235,3 +243,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+function setupStripePaymentSheet(arg0: number) {
+  throw new Error('Function not implemented.');
+}

@@ -170,7 +170,6 @@ EXECUTE FUNCTION public.handle_new_user();
 grant delete on table "public"."category" to "anon";
 
 grant insert on table "public"."category" to "anon";
-
 grant references on table "public"."category" to "anon";
 
 grant select on table "public"."category" to "anon";

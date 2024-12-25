@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { ToastProvider } from 'react-native-toast-notifications';
 import AuthProvider from './Providers/auth-provider';
 import QueryProvider from './Providers/query-provider'; // Adjust the import path as necessary
+import { StripeProvider } from '@stripe/stripe-react-native';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Platform } from 'react-native';
@@ -23,7 +24,8 @@ export default function RootLayout() {
       <ToastProvider>
         <AuthProvider>
           <QueryProvider>
-            <Stack>
+            <StripeProvider publishableKey={process.env.EXPO_STRIPE_PUBLISHABLE_KEY!}>
+              <Stack>
               <Stack.Screen
                 name='(shop)'
                 options={{ headerShown: false, title: 'Shop' }}
@@ -39,12 +41,13 @@ export default function RootLayout() {
               <Stack.Screen
                 name='cart'
                 options={{
-                  presentation: 'modal',
-                  title: 'Shopping Cart',
+                presentation: 'modal',
+                title: 'Shopping Cart',
                 }}
               />
               <Stack.Screen name='auth' options={{ headerShown: false }} />
-            </Stack>
+              </Stack>
+            </StripeProvider>
           </QueryProvider>
         </AuthProvider>
       </ToastProvider>
