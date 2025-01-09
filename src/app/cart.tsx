@@ -8,13 +8,12 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import { useCartStore } from '../app/cart-store';
 import { StatusBar } from 'expo-status-bar';
 
 
+import { useCartStore } from './cart-store';
 import { createOrder, createOrderItem } from './api/api';
-import React from 'react';
-import { openStripeCheckout } from './lib/stripe';
+import { openStripeCheckout, setupStripePaymentSheet } from './lib/stripe';
 
 type CartItemType = {
   id: number;
@@ -87,24 +86,28 @@ export default function Cart() {
   const handleCheckout = async () => {
     const totalPrice = parseFloat(getTotalPrice());
 
-    try{
+    try {
       await setupStripePaymentSheet(Math.floor(totalPrice * 100));
-      const result= await openStripeCheckout();
-      
-      if(!result){
+
+      const result = await openStripeCheckout();
+
+      if (!result) {
         Alert.alert('An error occurred while processing the payment');
         return;
       }
-         await createSupabaseOrder(
+
+      await createSupabaseOrder(
         { totalPrice },
         {
           onSuccess: data => {
             createSupabaseOrderItem(
-              { insertData: items.map(item => ({
-                orderId: data.id,
-                productId: item.id,
-                quantity: item.quantity,
-              })) },
+              {
+                insertData: items.map(item => ({
+                  orderId: data.id,
+                  productId: item.id,
+                  quantity: item.quantity,
+                }))
+              },
               {
                 onSuccess: () => {
                   alert('Order created successfully');
@@ -119,7 +122,6 @@ export default function Cart() {
       console.error(error);
       alert('An error occurred while creating the order');
     }
-    
   };
 
   return (
@@ -243,7 +245,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-function setupStripePaymentSheet(arg0: number) {
-  throw new Error('Function not implemented.');
-}

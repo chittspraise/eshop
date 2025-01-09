@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Platform } from 'react-native';
 
 import { useBackHandler } from '@react-native-community/hooks';
+import NotificationProvider from './Providers/notification-provider';
 
 export default function RootLayout() {
   useBackHandler(() => {
@@ -24,7 +25,9 @@ export default function RootLayout() {
       <ToastProvider>
         <AuthProvider>
           <QueryProvider>
-            <StripeProvider publishableKey={process.env.EXPO_STRIPE_PUBLISHABLE_KEY!}>
+            <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+            >
+              <NotificationProvider>
               <Stack>
               <Stack.Screen
                 name='(shop)'
@@ -47,6 +50,7 @@ export default function RootLayout() {
               />
               <Stack.Screen name='auth' options={{ headerShown: false }} />
               </Stack>
+              </NotificationProvider>
             </StripeProvider>
           </QueryProvider>
         </AuthProvider>
