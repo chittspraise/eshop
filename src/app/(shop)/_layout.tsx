@@ -1,8 +1,10 @@
 import React from 'react';
-import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Redirect, Tabs, useRouter } from 'expo-router';
+import { ActivityIndicator, StyleSheet, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAuth } from '../Providers/auth-provider';
+import { Colors } from '../../../constants/Colors';
+// Correct the import path for Colors
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -13,6 +15,7 @@ function TabBarIcon(props: {
 
 const TabsLayout = () => {
   const { session, mounting } = useAuth();
+  const router = useRouter();
 
   if (mounting) return <ActivityIndicator />;
   if (!session) return <Redirect href='/auth' />;
@@ -33,21 +36,34 @@ const TabsLayout = () => {
           headerShown: false,
         }}
       >
+        {/* Shop Tab */}
         <Tabs.Screen
-          name='index'
+          name="index"
           options={{
             title: 'Shop',
             tabBarIcon(props) {
-              return <TabBarIcon {...props} name='shopping-cart' />;
+              return <TabBarIcon {...props} name="shopping-cart" />;
             },
           }}
         />
+        
+        {/* Orders Tab */}
         <Tabs.Screen
-          name='orders'
+          name="orders"
           options={{
             title: 'Orders',
             tabBarIcon(props) {
-              return <TabBarIcon {...props} name='book' />;
+              return <TabBarIcon {...props} name="book" />;
+            },
+          }}
+        />
+
+        <Tabs.Screen
+          name='search'
+          options={{
+            title: 'Search',
+            tabBarIcon(props) {
+              return <TabBarIcon {...props} name='search' />;
             },
           }}
         />
@@ -61,6 +77,5 @@ export default TabsLayout;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-   
   },
 });

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../Providers/auth-provider';
 
+
+
 const generateOrderSlug = () => {
   return 'order-' + Math.random().toString(36).substr(2, 9);
 };
