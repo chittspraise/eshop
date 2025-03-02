@@ -116,6 +116,7 @@ const ProuductDetails = () => {
           style={styles.quantityButton}
           onPress={increaseQuantity}
           disabled={quantity === product.maxQuantity}
+          
         >
           <Text style={styles.quantityButtonText}>+</Text>
         </TouchableOpacity>

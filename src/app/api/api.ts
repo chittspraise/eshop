@@ -2,19 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../Providers/auth-provider';
 
-
-
 const generateOrderSlug = () => {
   return 'order-' + Math.random().toString(36).substr(2, 9);
 };
-
 
 export const getProductsAndCategories = () => {
   return useQuery({
     queryKey: ['products', 'categories'],
     queryFn: async () => {
       const [products, categories] = await Promise.all([
-        supabase.from('product').select('*'),
+        supabase.from('product').select('*, Status'),
         supabase.from('category').select('*'),
       ]);
 
@@ -27,19 +24,19 @@ export const getProductsAndCategories = () => {
   });
 }
 
-export const getProduct=(slug:string)=>{
+export const getProduct = (slug: string) => {
   return useQuery({
-    queryKey:['product',slug],
-    queryFn:async()=>{
-      const {data,error}=await supabase
-      .from('product')
-      .select('*')
-      .eq('slug',slug)
-      .single();
+    queryKey: ['product', slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product')
+        .select('*, Status')
+        .eq('slug', slug)
+        .single();
 
-      if(error||!data){
+      if (error || !data) {
         throw new Error(
-          'An error occurred while fetching data'+error?.message
+          'An error occurred while fetching data: ' + error?.message
         );
       }
       return data;
@@ -63,7 +60,7 @@ export const getCategoriesAndProducts = (categorySlug: string) => {
 
       const { data: products, error: productsError } = await supabase
         .from('product')
-        .select('*')
+        .select('*, Status')
         .eq('category', category.id);
 
       if (productsError) {
@@ -76,36 +73,33 @@ export const getCategoriesAndProducts = (categorySlug: string) => {
 }
 
 export const getMyOrders = () => {
-  const{
-    user: {id}
-  }=useAuth();
-  
+  const {
+    user: { id }
+  } = useAuth();
+
   return useQuery({
-    queryKey:['orders',id],
-    queryFn:async()=>{
-      const {data,error}=await supabase
-      .from('order')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .eq('user',id);
+    queryKey: ['orders', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('order')
+        .select('*, refunded_amount')
+        .order('created_at', { ascending: false })
+        .eq('user', id);
 
-      if(error)
+      if (error)
+        throw new Error('An error occurred while fetching data: ' + error.message);
 
-        throw new Error('An error occurred while fetching data: ' + error.message
-
-        );
-      
       return data;
     }
   });
 }
+
 export const createOrder = () => {
   const {
     user: { id },
   } = useAuth();
 
   const slug = generateOrderSlug();
-
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -117,6 +111,7 @@ export const createOrder = () => {
           slug,
           user: id,
           status: 'Pending',
+          refunded_amount : 0
         })
         .select('*')
         .single();
@@ -135,23 +130,21 @@ export const createOrder = () => {
   });
 };
 
-
 export const createOrderItem = () => {
   return useMutation({
-    async mutationFn({ insertData }: { insertData: { orderId: number, productId: number, quantity: number }[] }){
-      const {data,error}=await supabase
-      .from('order_item')
-      .insert(
-        insertData.map(({ orderId, quantity, productId }) => ({
-          order: orderId,
-          quantity,
-          product: productId,
-        }))
-      )
-      .select('*')
-      
+    async mutationFn({ insertData }: { insertData: { orderId: number, productId: number, quantity: number }[] }) {
+      const { data, error } = await supabase
+        .from('order_item')
+        .insert(
+          insertData.map(({ orderId, quantity, productId }) => ({
+            order: orderId,
+            quantity,
+            product: productId,
+          }))
+        )
+        .select('*');
 
-    const productQuantities = insertData.reduce(
+      const productQuantities = insertData.reduce(
         (acc, { productId, quantity }) => {
           if (!acc[productId]) {
             acc[productId] = 0;
@@ -163,46 +156,42 @@ export const createOrderItem = () => {
       );
 
       await Promise.all(
-        
         Object.entries(productQuantities).map(
-         async ([productId, totalQuantity]) =>
-          supabase.rpc('decrement_product_quantity', {
-            product_id: Number(productId),
-            quantity: totalQuantity,
-          })
+          async ([productId, totalQuantity]) =>
+            supabase.rpc('decrement_product_quantity', {
+              product_id: Number(productId),
+              quantity: totalQuantity,
+            })
         )
       );
-     
-      if(error)
-        throw new Error('An error occurred while creating order item: ' + error.message
-      );
-        return data;
+
+      if (error)
+        throw new Error('An error occurred while creating order item: ' + error.message);
+      
+      return data;
     }
   });
-  }
+}
 
-  export const getMyOrder = (slug: string) => {
-    const {
-      user: { id },
-    } = useAuth();
+export const getMyOrder = (slug: string) => {
+  const {
+    user: { id },
+  } = useAuth();
 
-    return useQuery({
-      queryKey: ['orders', slug],
-      queryFn: async () => {
-        const { data, error } = await supabase
-           .from('order')
-          .select('*, order_item(*, products:product(*))')
-          .eq('slug', slug)
-          .eq('user', id)
-          .single();
+  return useQuery({
+    queryKey: ['orders', slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('order')
+        .select('*, order_item(*, products:product(*, Status))')
+        .eq('slug', slug)
+        .eq('user', id)
+        .single();
 
-        if (error)
-          throw new Error('An error occurred while fetching data: ' + error.message);
+      if (error)
+        throw new Error('An error occurred while fetching data: ' + error.message);
 
-        return data;
-      },
-    });
-  };
-
-
- 
+      return data;
+    },
+  });
+};

@@ -4,7 +4,6 @@ import { ActivityIndicator, StyleSheet, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAuth } from '../Providers/auth-provider';
 import { Colors } from '../../../constants/Colors';
-// Correct the import path for Colors
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -46,6 +45,16 @@ const TabsLayout = () => {
             },
           }}
         />
+        {/* Search Tab */}
+        <Tabs.Screen
+          name='search'
+          options={{
+            title: 'Search',
+            tabBarIcon(props) {
+              return <TabBarIcon {...props} name='search' />;
+            },
+          }}
+        />
         
         {/* Orders Tab */}
         <Tabs.Screen
@@ -58,12 +67,13 @@ const TabsLayout = () => {
           }}
         />
 
+        {/* Account Tab */}
         <Tabs.Screen
-          name='search'
+          name='Account'
           options={{
-            title: 'Search',
-            tabBarIcon(props) {
-              return <TabBarIcon {...props} name='search' />;
+            title: 'Account',
+            tabBarIcon: (props) => {
+              return <TabBarIcon {...props} name='user' />;  // Changed "book" to "user"
             },
           }}
         />

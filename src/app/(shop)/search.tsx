@@ -85,10 +85,10 @@ const SearchScreen: React.FC = () => {
   const handleSearch = () => {
     const query = searchQuery.toLowerCase();
     const filteredProducts = products.filter(product =>
-      product.title.toLowerCase().includes(query)
+      product.title.toLowerCase().startsWith(query)
     );
     const filteredCategories = categories.filter(category =>
-      category.name.toLowerCase().includes(query)
+      category.name.toLowerCase().startsWith(query)
     );
     setFilteredProducts(filteredProducts);
     setFilteredCategories(filteredCategories);
@@ -118,7 +118,7 @@ const SearchScreen: React.FC = () => {
           </TouchableOpacity>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search all products or categories..."
             value={searchQuery}
             onChangeText={text => setSearchQuery(text)}
             onSubmitEditing={handleSearch}
@@ -134,6 +134,7 @@ const SearchScreen: React.FC = () => {
             <FlatList
               data={filteredCategories}
               keyExtractor={(item) => item.id.toString()}
+
               renderItem={({ item }) => (
                 <Link asChild href={`/categories/${item.slug}`}>
                   <TouchableOpacity style={styles.card}>
@@ -142,6 +143,7 @@ const SearchScreen: React.FC = () => {
                   </TouchableOpacity>
                 </Link>
               )}
+
             />
 
             <Text style={styles.sectionTitle}>Products</Text>
@@ -211,6 +213,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
+    width: '70%',
+    
   },
   cardImage: {
     width: '100%',

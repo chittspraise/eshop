@@ -127,4 +127,7 @@ const styles: { [key: string]: any } = StyleSheet.create({
   statusBadge_inTransit: {
     backgroundColor: '#ff9800',
   },
+  statusBadge_Default: {
+    backgroundColor: 'gray',
+  },
 });

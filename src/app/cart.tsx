@@ -1,3 +1,5 @@
+
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,10 +12,12 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-
 import { useCartStore } from './cart-store';
 import { createOrder, createOrderItem } from './api/api';
 import { openStripeCheckout, setupStripePaymentSheet } from './lib/stripe';
+import { useWallet } from './Providers/Wallet-provider';
+import { useNavigation } from 'expo-router';
+
 
 type CartItemType = {
   id: number;
@@ -80,49 +84,135 @@ export default function Cart() {
     resetCart,
   } = useCartStore();
 
+  const navigation = useNavigation();
   const { mutateAsync: createSupabaseOrder } = createOrder();
   const { mutateAsync: createSupabaseOrderItem } = createOrderItem();
 
+  const { walletBalance, updateWalletBalance } = useWallet(); // Assuming updateWalletBalance is available from your wallet context
+
+  // Toggle the wallet status for full or partial payment.
+  const [walletToggle, setWalletToggle] = useState(false);
+  
   const handleCheckout = async () => {
     const totalPrice = parseFloat(getTotalPrice());
-
-    try {
-      await setupStripePaymentSheet(Math.floor(totalPrice * 100));
-
-      const result = await openStripeCheckout();
-
-      if (!result) {
-        Alert.alert('An error occurred while processing the payment');
-        return;
-      }
-
-      await createSupabaseOrder(
-        { totalPrice },
-        {
-          onSuccess: data => {
-            createSupabaseOrderItem(
-              {
-                insertData: items.map(item => ({
-                  orderId: data.id,
-                  productId: item.id,
-                  quantity: item.quantity,
-                }))
-              },
-              {
-                onSuccess: () => {
-                  alert('Order created successfully');
-                  resetCart();
+  
+    if (walletToggle && (walletBalance ?? 0) >= totalPrice) {
+      // Process order fully with wallet
+      try {
+        await createSupabaseOrder(
+          { totalPrice },
+          {
+            onSuccess: async (data) => {
+              // Deduct the full amount from wallet
+              const newWalletBalance = (walletBalance ?? 0) - totalPrice;
+              await updateWalletBalance(newWalletBalance); // Assuming this function updates wallet balance in your backend
+  
+              createSupabaseOrderItem(
+                {
+                  insertData: items.map(item => ({
+                    orderId: data.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                  })),
                 },
-              }
-            );
-          },
+                {
+                  onSuccess: () => {
+                    alert('Order created successfully with full wallet payment');
+                    resetCart();
+                  },
+                }
+              );
+            },
+          }
+        );
+      } catch (error) {
+        console.error(error);
+        alert('An error occurred while creating the order');
+      }
+      return;
+    } else if (walletToggle && (walletBalance ?? 0) < totalPrice) {
+      // Wallet balance is insufficient, process partial payment via Stripe
+      const remainingAmount = totalPrice - (walletBalance ?? 0);
+      try {
+        await setupStripePaymentSheet(Math.floor(remainingAmount * 100));
+        const result = await openStripeCheckout();
+        if (!result) {
+          Alert.alert('An error occurred while processing the payment');
+          return;
         }
-      );
-    } catch (error) {
-      console.error(error);
-      alert('An error occurred while creating the order');
+  
+        // Deduct the wallet balance from the total price
+        const newWalletBalance = (walletBalance ?? 0) - totalPrice; // Deduct the total price from the wallet balance
+        await updateWalletBalance(newWalletBalance);
+         // Assuming this function updates wallet balance in your backend
+  
+        await createSupabaseOrder(
+          { totalPrice },
+          {
+            onSuccess: data => {
+              createSupabaseOrderItem(
+                {
+                  insertData: items.map(item => ({
+                    orderId: data.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                  })),
+                },
+                {
+                  onSuccess: () => {
+                    alert('Order created successfully');
+                    resetCart();
+                  },
+                }
+              );
+            },
+          }
+        );
+        
+      } catch (error) {
+        console.error(error);
+        alert('An error occurred while creating the order');
+      }
+      return;
+    } else if (!walletToggle) {
+      // Wallet toggle is off, use Stripe for full payment
+      try {
+        await setupStripePaymentSheet(Math.floor(totalPrice * 100));
+        const result = await openStripeCheckout();
+        if (!result) {
+          Alert.alert('An error occurred while processing the payment');
+          return;
+        }
+        await createSupabaseOrder(
+          { totalPrice },
+          {
+            onSuccess: data => {
+              createSupabaseOrderItem(
+                {
+                  insertData: items.map(item => ({
+                    orderId: data.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                  })),
+                },
+                {
+                  onSuccess: () => {
+                    alert('Order created successfully with Stripe payment');
+                    resetCart();
+                  },
+                }
+              );
+            },
+          }
+        );
+      } catch (error) {
+        console.error(error);
+        alert('An error occurred while creating the order');
+      }
+      return;
     }
   };
+  
 
   return (
     <View style={styles.container}>
@@ -141,12 +231,35 @@ export default function Cart() {
         )}
         contentContainerStyle={styles.cartList}
       />
-
+  <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
+        <Text style={{ color: 'red',  marginBottom: 10 }}>
+          Please make sure your Address is correct or set it here
+        </Text>
+      </TouchableOpacity>
       <View style={styles.footer}>
         <Text style={styles.totalText}>Total: ${getTotalPrice()}</Text>
+
+        {/* Wallet Payment Toggle */}
+        <View style={styles.walletToggleContainer}>
+          <TouchableOpacity
+            style={styles.walletToggleButton}
+            onPress={() => setWalletToggle(!walletToggle)}
+          >
+            <Text
+              style={[
+                styles.walletToggleButtonText,
+                walletToggle && styles.walletToggleButtonTextActive,
+              ]}
+            >
+              Wallet Payment: {walletToggle ? 'On' : 'Off'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           onPress={handleCheckout}
           style={styles.checkoutButton}
+          
         >
           <Text style={styles.checkoutButtonText}>Checkout</Text>
         </TouchableOpacity>
@@ -243,5 +356,20 @@ const styles = StyleSheet.create({
   quantityButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  walletToggleContainer: {
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  walletToggleButton: {
+    padding: 10,
+    backgroundColor: '#ccc',
+    borderRadius: 5,
+  },
+  walletToggleButtonText: {
+    fontSize: 16,
+  },
+  walletToggleButtonTextActive: {
+    color: 'green',
   },
 });
