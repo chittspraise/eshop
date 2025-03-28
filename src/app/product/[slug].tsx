@@ -32,16 +32,10 @@ const ProuductDetails = () => {
     if (!product)  return <Redirect href="/404" />;
     
     const increaseQuantity = () => {
-      if (quantity < product.maxQuantity) {
+    
         setQuantity(prev=> prev + 1);
         incrementItem(product.id);
-      } else {
-        toast.show('Max quantity reached', 
-          {type: 'warning',
-          placement: 'top',
-          duration: 1300
-        });
-      }
+       
     };
 
     const decreaseQuantity = () => {
@@ -64,7 +58,7 @@ const ProuductDetails = () => {
         price: product.price,
         quantity,
         heroImage: product.heroImage,
-        maxQuantity: product.maxQuantity,
+       
       });
       toast.show(' Added to cart', {
         type: 'success',
@@ -81,15 +75,14 @@ const ProuductDetails = () => {
       <Image source={{uri:product.heroImage}} style={styles.heroImage} />
 
        <View style={{padding: 16, flex:1}}>
-         <Text style={styles.slug}>{product.slug}</Text>
          <Text style={styles.title}>{product.title}</Text>
-          <View style={styles.priceContainer}>
+            <View style={styles.priceContainer}>
             <Text style={styles.price}>
-            Unit Price: ${product.price.toFixed(2)}
+              Unit Price: R{product.price.toFixed(2)}
             </Text>
-            <Text style={styles.price}>Total Price: ${totalPrice}</Text>
-
-      </View>
+            <Text style={styles.price}>Total Price: R{totalPrice}</Text>
+            </View>
+            <Text style={styles.description}>{product.description}</Text>
       <FlatList
         horizontal
         data={product.imagesUrl}
@@ -115,7 +108,7 @@ const ProuductDetails = () => {
         <TouchableOpacity
           style={styles.quantityButton}
           onPress={increaseQuantity}
-          disabled={quantity === product.maxQuantity}
+         
           
         >
           <Text style={styles.quantityButtonText}>+</Text>
@@ -148,7 +141,7 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: 250,
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 24,
@@ -170,6 +163,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
+  description: {
+    fontSize: 16,
+    color: '#555',
+    marginVertical: 8,
+  },
+  
 
   imagesContainer: {
     marginBottom: 16,

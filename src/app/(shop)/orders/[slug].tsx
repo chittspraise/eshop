@@ -63,7 +63,7 @@ const OrderDetails = () => {
               <Image source={{ uri: item.heroImage }} style={styles.heroImage} />
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.title}</Text>
-                <Text style={styles.itemPrice}>Price: ${item.price}</Text>
+                <Text style={styles.itemPrice}>Price: R{item.price}</Text>
                 {order.status.trim() !== 'Pending' && (
   <Text
     style={[
@@ -85,7 +85,7 @@ const OrderDetails = () => {
         <View style={styles.footer}>
           <View style={styles.horizontalLine} />
           <Text style={styles.refundText}>
-         Refund: ${order.refunded_amount 
+         Refund: R{order.refunded_amount 
         ? (order.refunded_amount * order.order_item.reduce((total, item) => total + item.quantity, 0)).toFixed(2)
         : '0.00'}
          </Text>

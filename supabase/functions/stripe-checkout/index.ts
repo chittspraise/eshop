@@ -5,8 +5,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@^17.5.0';
-import { getOrCreateStripeCustomerForSupabaseUser } from '../supabase';
-
+import { getOrCreateStripeCustomerForSupabaseUser } from '../supabase.ts';
 
 export const stripe = Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   // This is needed to use the Fetch API rather than relying on the Node http
@@ -26,7 +25,7 @@ Deno.serve(async req => {
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount,
-    currency: 'usd',
+    currency: 'zar',
     customer, // This wil link the payment to the customer
   });
 

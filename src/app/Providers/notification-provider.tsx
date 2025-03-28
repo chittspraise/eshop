@@ -14,7 +14,7 @@ Notifications.setNotificationHandler({
   });
 
 
-const NotificationProvider = ({children}: PropsWithChildren) => {
+    const NotificationProvider = ({children}: PropsWithChildren) => {
     const [expoPushToken, setExpoPushToken] = useState('');
     const [notification, setNotification] = useState<Notifications.Notification | undefined>(
       undefined

@@ -156,7 +156,7 @@ const SearchScreen: React.FC = () => {
                     <Image source={{ uri: item.heroImage }} style={styles.cardImage} />
                     <Text style={styles.cardTitle}>{item.title}</Text>
                     <Text>Category: {getCategoryName(item.category)}</Text>
-                    <Text>${item.price}</Text>
+                    <Text>R{item.price}</Text>
                   </TouchableOpacity>
                 </Link>
               )}

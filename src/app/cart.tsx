@@ -17,6 +17,9 @@ import { createOrder, createOrderItem } from './api/api';
 import { openStripeCheckout, setupStripePaymentSheet } from './lib/stripe';
 import { useWallet } from './Providers/Wallet-provider';
 import { useNavigation } from 'expo-router';
+import{supabase} from './lib/supabase'
+import{User} from '@supabase/supabase-js'
+
 
 
 type CartItemType = {
@@ -25,7 +28,7 @@ type CartItemType = {
   heroImage: string;
   price: number;
   quantity: number;
-  maxQuantity: number;
+
 };
 
 type CartItemProps = {
@@ -46,7 +49,7 @@ const CartItem = ({
       <Image source={{ uri: item.heroImage }} style={styles.itemImage} />
       <View style={styles.itemDetails}>
         <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.itemPrice}>R{item.price.toFixed(2)}</Text>
         <View style={styles.quantityContainer}>
           <TouchableOpacity
             onPress={() => onDecrement(item.id)}
@@ -74,6 +77,8 @@ const CartItem = ({
   );
 };
 
+
+
 export default function Cart() {
   const {
     items,
@@ -94,8 +99,16 @@ export default function Cart() {
   const [walletToggle, setWalletToggle] = useState(false);
   
   const handleCheckout = async () => {
-    const totalPrice = parseFloat(getTotalPrice());
+    // First, get the current user (adjust this if you have a different method)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
   
+    // Existing checkout logic:
+    const totalPrice = parseFloat(getTotalPrice());
+    
     if (walletToggle && (walletBalance ?? 0) >= totalPrice) {
       // Process order fully with wallet
       try {
@@ -103,10 +116,8 @@ export default function Cart() {
           { totalPrice },
           {
             onSuccess: async (data) => {
-              // Deduct the full amount from wallet
               const newWalletBalance = (walletBalance ?? 0) - totalPrice;
-              await updateWalletBalance(newWalletBalance); // Assuming this function updates wallet balance in your backend
-  
+              await updateWalletBalance(newWalletBalance);
               createSupabaseOrderItem(
                 {
                   insertData: items.map(item => ({
@@ -140,12 +151,8 @@ export default function Cart() {
           Alert.alert('An error occurred while processing the payment');
           return;
         }
-  
-        // Deduct the wallet balance from the total price
-        const newWalletBalance = (walletBalance ?? 0) - totalPrice; // Deduct the total price from the wallet balance
+        const newWalletBalance = (walletBalance ?? 0) - totalPrice;
         await updateWalletBalance(newWalletBalance);
-         // Assuming this function updates wallet balance in your backend
-  
         await createSupabaseOrder(
           { totalPrice },
           {
@@ -168,7 +175,6 @@ export default function Cart() {
             },
           }
         );
-        
       } catch (error) {
         console.error(error);
         alert('An error occurred while creating the order');
@@ -197,7 +203,7 @@ export default function Cart() {
                 },
                 {
                   onSuccess: () => {
-                    alert('Order created successfully with Stripe payment');
+                    alert('Order created successfully');
                     resetCart();
                   },
                 }
@@ -231,13 +237,13 @@ export default function Cart() {
         )}
         contentContainerStyle={styles.cartList}
       />
-  <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
+        <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
         <Text style={{ color: 'red',  marginBottom: 10 }}>
           Please make sure your Address is correct or set it here
         </Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
       <View style={styles.footer}>
-        <Text style={styles.totalText}>Total: ${getTotalPrice()}</Text>
+        <Text style={styles.totalText}>Total: R{getTotalPrice()}</Text>
 
         {/* Wallet Payment Toggle */}
         <View style={styles.walletToggleContainer}>
@@ -257,9 +263,38 @@ export default function Cart() {
         </View>
 
         <TouchableOpacity
-          onPress={handleCheckout}
-          style={styles.checkoutButton}
+          onPress={async () => {
+            // First, get the current user (adjust this if you have a different method)
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              Alert.alert('Error', 'User not logged in');
+              return;
+            }
+
+            // Query the profile table for the "address" column (your address)
+            const { data: profileData, error: profileError } = await supabase
+            .from('profile')
+            .select('address')
+            .eq('user_id', user.id) // Use 'user_id' instead of 'id'
+            .single();
           
+
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              Alert.alert('Error', 'Could not fetch profile information.');
+              return;
+            }
+
+            if (!profileData.address) {
+              // Navigate to Delivery Address screen if no address is set
+              navigation.navigate('Deliveryaddress' as never);
+              return;
+            }
+
+            // Proceed with checkout if address is set
+            handleCheckout();
+          }}
+          style={styles.checkoutButton}
         >
           <Text style={styles.checkoutButtonText}>Checkout</Text>
         </TouchableOpacity>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { Card, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Feather';
 import { User } from '@supabase/supabase-js';
@@ -63,6 +63,26 @@ const AccountScreen = () => {
     }
   }, [user]);
 
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleSavePhoneNumber = async () => {
+    if (user) {
+      const { error } = await supabase
+        .from('profile')
+        .update({ phone_number: newPhoneNumber })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error("Error updating phone number:", error);
+      } else {
+        setPhoneNumber(newPhoneNumber);
+        setModalVisible(false);
+      }
+    }
+  };
+
+  const [newPhoneNumber, setNewPhoneNumber] = useState(phoneNumber);
+
   return (
     <ScrollView style={styles.container}>
       {/* Profile Section */}
@@ -87,7 +107,7 @@ const AccountScreen = () => {
             <Text style={styles.sectionTitle}> Wallet Balance</Text>
           </View>
           <Text style={styles.balance}>
-            ${walletBalance !== null ? walletBalance.toFixed(2) : '0.00'}
+            R{walletBalance !== null ? walletBalance.toFixed(2) : '0.00'}
           </Text>
           <Button
             mode="contained"
@@ -103,27 +123,53 @@ const AccountScreen = () => {
   <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
     <Card style={styles.card}>
       <Card.Content>
-        <View style={styles.row}>
-          <Icon name="home" size={20} color="#1BC464" />
-          <Text style={styles.sectionTitle}> Delivery Address</Text>
-        </View>
-        <Text style={styles.detailValue}>{address}</Text>
+      <View style={styles.row}>
+        <Icon name="home" size={20} color="#1BC464" />
+        <Text style={styles.sectionTitle}> Delivery Address</Text>
+        <Icon name="edit" size={20} color="#1BC464" style={styles.editIcon} />
+      </View>
+      <Text style={styles.detailValue}>{address}</Text>
       </Card.Content>
     </Card>
   </TouchableOpacity>
 
       <Card style={styles.card}>
         <Card.Content>
-          <View style={styles.row}>
-        <Icon name="phone" size={20} color="#1BC464" />
-        <Text style={styles.sectionTitle}> Phone Number</Text>
-          </View>
+            <View style={styles.row}>
+            <Icon name="phone" size={20} color="#1BC464" />
+            <Text style={styles.sectionTitle}> Phone Number</Text>
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.editIcon}>
+              <Icon name="edit" size={20} color="#1BC464" />
+            </TouchableOpacity>
+            </View>
+            <Modal
+            visible={modalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setModalVisible(false)}
+            >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Edit Phone Number</Text>
+                <TextInput
+                style={[styles.input, { width: '300%' }]}
+                value={newPhoneNumber || ''}
+                onChangeText={setNewPhoneNumber}
+                keyboardType="phone-pad"
+                maxLength={15} // Set a maximum length for the phone number
+                />
+              <Button mode="contained" onPress={handleSavePhoneNumber} style={styles.saveButton}>
+                Save
+              </Button>
+              <Button mode="text" onPress={() => setModalVisible(false)} style={styles.cancelButton}>
+                Cancel
+              </Button>
+              </View>
+            </View>
+            </Modal>
           <Text style={styles.detailValue}>{phoneNumber}</Text>
         </Card.Content>
       </Card>
-
-       
-      
     
       <Card style={styles.card}>
         <Card.Content>
@@ -255,6 +301,46 @@ const styles = StyleSheet.create({
     color: '#1BC464',
     textDecorationLine: 'underline',
     marginVertical: 5,
+  },
+  editIcon: {
+    marginLeft: 'auto',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  input: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  saveButton: {
+    backgroundColor: '#1BC464',
+    marginTop: 10,
+  },
+  cancelButton: {
+    marginTop: 10,
   },
 });
 
