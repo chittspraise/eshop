@@ -1,22 +1,22 @@
 import React from 'react';
-import { Stack, useNavigation } from 'expo-router';
+import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CategoryLayout() {
-  const navigation = useNavigation();
   return (
     <Stack>
       <Stack.Screen
         name='[slug]'
-        options={{
+        options={({ navigation }) => ({
           headerShown: true,
-          headerLeft: (props: any) => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 10 }}>
               <Ionicons name='arrow-back' size={24} color='black' />
             </TouchableOpacity>
           ),
-        }}
+          headerTitle: 'Category',
+        })}
       />
     </Stack>
   );

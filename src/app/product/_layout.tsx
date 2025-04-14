@@ -1,25 +1,30 @@
-
 import React from 'react';
-import{Stack} from 'expo-router';
-import { TouchableOpacity, Text } from 'react-native';
+import { Stack } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
 
+function CustomBackButton() {
+  const navigation = useNavigation();
 
-export default function ProductLayout(){   
-return (
-   <Stack>
-      <Stack.Screen 
-        name='[slug]'  
-        options={({navigation}) => ({
-        headerShown: true,
-        headerLeft: () =>(
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="black" />
-              <Text>back</Text>
-             
-            </TouchableOpacity> ),
-        headerTitleAlign: 'center' })} 
-        />
+  return (
+    <TouchableOpacity onPress={() => navigation.goBack()}>
+      <Ionicons name="arrow-back" size={24} color="black" />
+    </TouchableOpacity>
+  );
+}
+
+export default function ProductLayout() {
+  return (
+    <Stack>
+      <Stack.Screen
+        name='[slug]'
+        options={{
+          headerShown: true,
+          headerLeft: () => <CustomBackButton />,
+          headerTitleAlign: 'center',
+        }}
+      />
     </Stack>
- );
+  );
 }

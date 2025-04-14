@@ -18,7 +18,7 @@ import { openStripeCheckout, setupStripePaymentSheet } from './lib/stripe';
 import { useWallet } from './Providers/Wallet-provider';
 import { useNavigation } from 'expo-router';
 import{supabase} from './lib/supabase'
-import{User} from '@supabase/supabase-js'
+
 
 
 

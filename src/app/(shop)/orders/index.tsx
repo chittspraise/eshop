@@ -11,8 +11,9 @@ import { Link, Stack } from 'expo-router';
 import { format } from 'date-fns';
 
 import { Tables } from '../../../types/database.types';
-import { getMyOrders } from '../../api/api';
+
 import React from 'react';
+import { getMyOrders } from '../../api/api';
 
 
 const renderItem: ListRenderItem<Tables<'order'>> = ({ item }) => (
@@ -114,20 +115,20 @@ const styles: { [key: string]: any } = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  statusBadge_pending: {
-    backgroundColor: '#ffcc00',
+  statusBadge_Pending: {
+    backgroundColor: 'yellow',
   
   },
-  statusBadge_completed: {
-    backgroundColor: '#4caf50',
+  statusBadge_Completed: {
+    backgroundColor: 'green',
   },
   statusBadge_Shipped: {
-    backgroundColor: '#2196f3',
+    backgroundColor: 'blue',
   },
-  statusBadge_inTransit: {
-    backgroundColor: '#ff9800',
+  statusBadge_InTransit: {
+    backgroundColor: 'Orange',
   },
-  statusBadge_Default: {
-    backgroundColor: 'gray',
+  statusBadge_Received: {
+    backgroundColor: 'green',
   },
 });

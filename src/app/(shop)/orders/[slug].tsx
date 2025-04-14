@@ -1,3 +1,4 @@
+
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
@@ -12,88 +13,83 @@ import { format } from 'date-fns';
 import { getMyOrder } from '../../api/api';
 import React from 'react';
 
-
 const OrderDetails = () => {
-    const { slug } = useLocalSearchParams<{ slug: string }>();
-  
-    const { data: order, error, isLoading } = getMyOrder(slug);
-  
-    // Show loading indicator while fetching data
-    if (isLoading) return <ActivityIndicator />;
-  
-    // Handle error or missing order data
-    if (error || !order) return <Text style={styles.errorText}>Error: {error?.message || 'Order not found'}</Text>;
-  
-    // Prepare the order items, expanding based on quantity
-    const orderItems = order.order_item.flatMap((orderItem: any) => {
-      const individualItems = [];
-      // Create individual items based on quantity
-      for (let i = 0; i < orderItem.quantity; i++) {
-        individualItems.push({
-          id: `${orderItem.id}_${i}`,  // Unique ID for each item
-          title: orderItem.products.title,
-          heroImage: orderItem.products.heroImage,
-          price: orderItem.products.price,
-          status: orderItem.products.Status, // Can be modified individually
-          refundedAmount: order.refunded_amount / orderItem.quantity, // Refund divided per item
-        });
-      }
-      return individualItems;
-    });
-  
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { data: order, error, isLoading } = getMyOrder(slug);
+
+  if (isLoading) return <ActivityIndicator />;
+  if (error || !order) {
     return (
-      <View style={styles.container}>
-        <Stack.Screen options={{ title: `${order.slug}` }} />
-        
-        <Text style={styles.item}>{order.slug}</Text>
-        <Text style={styles.details}>{order.description}</Text>
-        
-        <View style={[styles.statusBadge, styles[`statusBadge_${order.status?.replace(' ', '')}`] || styles.statusBadge_Default]}>
-          <Text style={styles.statusText}>{order.status}</Text>
-        </View>
-  
-        <Text style={styles.date}>{format(new Date(order.created_at), 'MMM dd, yyyy')}</Text>
-        <Text style={styles.itemsTitle}>Items Ordered:</Text>
-        
-        <FlatList
-          data={orderItems}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.orderItem}>
-              <Image source={{ uri: item.heroImage }} style={styles.heroImage} />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.title}</Text>
-                <Text style={styles.itemPrice}>Price: R{item.price}</Text>
-                {order.status.trim() !== 'Pending' && (
-  <Text
-    style={[
-      styles.itemStatus,
-      { color: item.status.trim() === 'out of stock' ? 'red' : 'green' }
-    ]}
-  >
-    Status: {item.status}
-  </Text>
-)}
-
-               
-
-               </View>
-            </View>
-              )}
-               />
-        
-        <View style={styles.footer}>
-          <View style={styles.horizontalLine} />
-          <Text style={styles.refundText}>
-         Refund: R{order.refunded_amount 
-        ? (order.refunded_amount * order.order_item.reduce((total, item) => total + item.quantity, 0)).toFixed(2)
-        : '0.00'}
-         </Text>
-        </View>
-      </View>
+      <Text style={styles.errorText}>
+        Error: {error?.message || 'Order not found'}
+      </Text>
     );
-  };
-  
+  }
+
+  // Create individual items based on quantity, and include status directly
+  const orderItems = order.order_item.flatMap((orderItem: any) => {
+    const individualItems = [];
+    for (let i = 0; i < orderItem.quantity; i++) {
+      individualItems.push({
+        id: `${orderItem.id}_${i}`,
+        title: orderItem.products.title,
+        heroImage: orderItem.products.heroImage,
+        price: orderItem.products.price,
+        status: orderItem.status, // include directly here
+      });
+    }
+    return individualItems;
+  });
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen options={{ title: `${order.slug}` }} />
+
+      <Text style={styles.details}>{order.description}</Text>
+
+      <View
+        style={[
+          styles.statusBadge,
+          styles[`statusBadge_${order.status?.replace(' ', '')}`] ||
+            styles.statusBadge_Default,
+        ]}
+      >
+        <Text style={styles.statusText}>{order.status}</Text>
+      </View>
+
+      <Text style={styles.date}>
+        {format(new Date(order.created_at), 'MMM dd, yyyy')}
+      </Text>
+      <Text style={styles.itemsTitle}>Items Ordered:</Text>
+
+      <FlatList
+        data={orderItems}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.orderItem}>
+            <Image source={{ uri: item.heroImage }} style={styles.heroImage} />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>{item.title}</Text>
+              <Text style={styles.itemPrice}>Price: R{item.price}</Text>
+              {item.status?.trim().toLowerCase() === 'out of stock' && (
+                <Text style={[styles.itemstatus, { color: 'red' }]}>
+                  Status: {item.status}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+      />
+
+      <View style={styles.footer}>
+        <View style={styles.horizontalLine} />
+        <Text style={styles.refundText}>
+          Refund: R{order.refunded_amount ?? '0.00'}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 export default OrderDetails;
 
@@ -117,21 +113,23 @@ const styles: { [key: string]: any } = StyleSheet.create({
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
-  statusBadge_pending: {
-    backgroundColor: 'orange',
+  statusBadge_Pending: {
+    backgroundColor: 'yellow',
+  
   },
-  statusBadge_completed: {
+  statusBadge_Completed: {
     backgroundColor: 'green',
   },
   statusBadge_Shipped: {
     backgroundColor: 'blue',
   },
-  statusBadge_inTransit: {
-    backgroundColor: 'purple',
+  statusBadge_InTransit: {
+    backgroundColor: 'Orange',
   },
-  statusBadge_Default: {
-    backgroundColor: 'gray',
+  statusBadge_Received: {
+    backgroundColor: 'green',
   },
+
   statusText: {
     color: '#fff',
     fontWeight: 'bold',
@@ -160,6 +158,7 @@ const styles: { [key: string]: any } = StyleSheet.create({
     width: '50%',
     height: 100,
     borderRadius: 10,
+    resizeMode: 'contain',
   },
   itemInfo: {},
   itemName: {
@@ -190,6 +189,7 @@ const styles: { [key: string]: any } = StyleSheet.create({
     refundText: {
       fontSize: 16,
       fontWeight: 'bold',
+      color:'green',
     },
   });
-//   },
+

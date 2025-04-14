@@ -35,6 +35,7 @@ const ProuductDetails = () => {
     
         setQuantity(prev=> prev + 1);
         incrementItem(product.id);
+        
        
     };
 
@@ -108,6 +109,7 @@ const ProuductDetails = () => {
         <TouchableOpacity
           style={styles.quantityButton}
           onPress={increaseQuantity}
+          disabled={product.Status==='out of stock'}  
          
           
         >

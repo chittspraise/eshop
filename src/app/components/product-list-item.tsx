@@ -20,14 +20,14 @@ import { Tables } from '../../types/database.types';
           <View style={styles.itemTextContainer}>
             <Text style={styles.itemTitle}>{product.title}</Text>
             <Text style={styles.itemPrice}>R{product.price.toFixed(2)}</Text>
+            {product.Status === 'out of stock' && (
+             <Text style={styles.productStatus}>Out of stock</Text>)}
           </View>
         </Pressable>
       </Link>
     
     );
   };
-  
-  
   
   const styles = StyleSheet.create({
     item:{width:'50%',
@@ -44,7 +44,7 @@ import { Tables } from '../../types/database.types';
       itemImage:{
         height:'100%',
         width:'100%',
-        resizeMode:'cover',
+        resizeMode:'contain',
        },
        itemTextContainer:{
         padding:8,
@@ -59,4 +59,8 @@ import { Tables } from '../../types/database.types';
         fontSize:16,
         fontWeight:'bold',
     },  
+    productStatus:{
+        fontSize:14,
+        color:'red',
+    },
   });

@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, TextInput } from 'react-native';
+import React, { useEffect, useState, } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
 import { Card, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Feather';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useWallet } from '../Providers/Wallet-provider';
-import { useNavigation } from 'expo-router';
+import { useNavigation,  } from 'expo-router';
+
 
 const AccountScreen = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -194,10 +195,11 @@ const AccountScreen = () => {
       </Card>
       {/* Footer Links */}
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => alert('Navigate to Privacy Policy')}>
+        <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/Policy'))}>
           <Text style={styles.footerLink}>Privacy Policy</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => alert('Navigate to Terms of Service')}>
+
+        <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/TermsAndCondition'))}>
           <Text style={styles.footerLink}>Terms of Service</Text>
         </TouchableOpacity>
       </View>

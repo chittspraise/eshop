@@ -23,6 +23,28 @@ export const getProductsAndCategories = () => {
     }
   });
 }
+export const getMyOrders = () => {
+  const {
+    user: { id }
+  } = useAuth();
+
+  return useQuery({
+    queryKey: ['orders', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('order')
+        .select('*, refunded_amount')
+        .order('created_at', { ascending: false })
+        .eq('user', id);
+
+      if (error)
+        throw new Error('An error occurred while fetching data: ' + error.message);
+
+      return data;
+    }
+  });
+}
+
 
 export const getProduct = (slug: string) => {
   return useQuery({
@@ -72,27 +94,26 @@ export const getCategoriesAndProducts = (categorySlug: string) => {
   });
 }
 
-export const getMyOrders = () => {
+export const getMyProfile = () => {
   const {
-    user: { id }
+    user: { id },
   } = useAuth();
 
   return useQuery({
-    queryKey: ['orders', id],
+    queryKey: ['my-profile', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('order')
-        .select('*, refunded_amount')
-        .order('created_at', { ascending: false })
-        .eq('user', id);
+        .from('profile')
+        .select('user_id, wallet_balance, address, first_name, phone_number')
+        .eq('user_id', id)  // Corrected field to match user_id in the profile table
+        .single();
 
-      if (error)
-        throw new Error('An error occurred while fetching data: ' + error.message);
-
+      if (error) throw new Error('Failed to fetch profile: ' + error.message);
       return data;
-    }
+    },
   });
-}
+};
+
 
 export const createOrder = () => {
   const {
@@ -110,8 +131,8 @@ export const createOrder = () => {
           totalPrice,
           slug,
           user: id,
-          status: 'Pending',
-          refunded_amount : 0
+          status: 'Received',
+          refunded_amount: 0
         })
         .select('*')
         .single();
@@ -133,37 +154,22 @@ export const createOrder = () => {
 export const createOrderItem = () => {
   return useMutation({
     async mutationFn({ insertData }: { insertData: { orderId: number, productId: number, quantity: number }[] }) {
+      const individualInsertData: { order: number, product: number, quantity: number }[] = [];
+
+      for (const { orderId, productId, quantity } of insertData) {
+        for (let i = 0; i < quantity; i++) {
+          individualInsertData.push({
+            order: orderId,
+            product: productId,
+            quantity: 1,
+          });
+        }
+      }
+
       const { data, error } = await supabase
         .from('order_item')
-        .insert(
-          insertData.map(({ orderId, quantity, productId }) => ({
-            order: orderId,
-            quantity,
-            product: productId,
-          }))
-        )
+        .insert(individualInsertData)
         .select('*');
-
-      const productQuantities = insertData.reduce(
-        (acc, { productId, quantity }) => {
-          if (!acc[productId]) {
-            acc[productId] = 0;
-          }
-          acc[productId] += quantity;
-          return acc;
-        },
-        {} as Record<number, number>
-      );
-
-      await Promise.all(
-        Object.entries(productQuantities).map(
-          async ([productId, totalQuantity]) =>
-            supabase.rpc('decrement_product_quantity', {
-              product_id: Number(productId),
-              quantity: totalQuantity,
-            })
-        )
-      );
 
       if (error)
         throw new Error('An error occurred while creating order item: ' + error.message);
@@ -183,7 +189,7 @@ export const getMyOrder = (slug: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('order')
-        .select('*, order_item(*, products:product(*, Status))')
+        .select('*, order_item(*,status, products:product(*, Status))')
         .eq('slug', slug)
         .eq('user', id)
         .single();
@@ -192,6 +198,42 @@ export const getMyOrder = (slug: string) => {
         throw new Error('An error occurred while fetching data: ' + error.message);
 
       return data;
+    },
+  });
+};
+
+export const upsertMyProfile = () => {
+  const { user } = useAuth();  // Get the user from the context
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profileData: {
+      wallet_balance?: number;
+      address?: string;
+      first_name?: string;
+      phone_number?: string;
+    }) => {
+      if (!user || !user.id) {
+        throw new Error('User is not authenticated');  // Handle case where user is null
+      }
+
+      const { data, error } = await supabase
+        .from('profile')
+        .upsert({
+          id: user.id,  // Now using user.id safely
+          ...profileData,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw new Error('Failed to update profile: ' + error.message);
+      return data;
+    },
+
+    onSuccess: async () => {
+      if (user?.id) {  // Check user id before invalidating queries
+        await queryClient.invalidateQueries({ queryKey: ['my-profile', user.id] });
+      }
     },
   });
 };

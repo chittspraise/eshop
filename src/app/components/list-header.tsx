@@ -1,20 +1,40 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View, FlatList, Dimensions, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { FlatList } from 'react-native';
 
 import { useCartStore } from '../cart-store';
- import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Tables } from '../../types/database.types';
+import { getMyProfile } from '../api/api';
 
+const { width } = Dimensions.get('window');
+
+const heroImages = [
+  require('../../../assets/images/gg2-removebg-preview.png'),
+  require('../../../assets/images/gg-removebg-preview.png'),
+  require('../../../assets/images/gg3-removebg-preview.png'),
+];
 
 export const ListHeader = ({ categories }: { categories: Tables<'category'>[] }) => {
- const {getItemCount} = useCartStore();
- 
+  const { getItemCount } = useCartStore();
+  const flatListRef = useRef<FlatList>(null);
+  const [index, setIndex] = useState(0);
+  const { data: profile, isLoading, error } = getMyProfile(); // Destructure loading & error
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (index + 1) % heroImages.length;
+      setIndex(nextIndex);
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [index]);
 
   return (
     <View>
@@ -26,9 +46,16 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
                 source={{ uri: 'https://via.placeholder.com/40' }}
                 style={styles.avatarImage}
               />
-              <Text style={styles.avatarText}>Hello, Chitts</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="gray" />
+              ) : error ? (
+                <Text style={styles.avatarText}>Error loading profile</Text>
+              ) : (
+                <Text style={styles.avatarText}>Hello, {profile?.first_name}</Text>
+              )}
             </View>
           </View>
+
           <View style={styles.headerRight}>
             <Link style={styles.cartContainer} href="/cart" asChild>
               <Pressable>
@@ -42,26 +69,36 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
                     />
                     <View style={styles.badgeContainer}>
                       <Text style={styles.badgeText}>
-                       {getItemCount()}
+                        {getItemCount()}
                       </Text>
                     </View>
                   </View>
                 )}
               </Pressable>
             </Link>
-            <TouchableOpacity onPress={handleSignOut}
-
-            style={styles.signOutButton}>
+            <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
               <FontAwesome name="sign-out" size={24} color="red" />
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Image Carousel */}
         <View style={styles.heroContainer}>
-          <Image
-            source={require('../../../assets/images/hero.png')}
-            style={styles.heroImage}
+          <FlatList
+            ref={flatListRef}
+            data={heroImages}
+            keyExtractor={(_, i) => i.toString()}
+            horizontal
+            pagingEnabled
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <Image source={item} style={styles.heroImage} />
+            )}
+            showsHorizontalScrollIndicator={false}
           />
         </View>
+
+        {/* Categories */}
         <View style={styles.categoriesContainer}>
           <Text style={styles.sectionTitle}>Categories</Text>
           <FlatList
@@ -78,7 +115,7 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
                 </Pressable>
               </Link>
             )}
-            keyExtractor={item => item.name}
+            keyExtractor={(item) => item.name}
             horizontal
             showsHorizontalScrollIndicator={false}
           />
@@ -88,10 +125,8 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
   );
 };
 
-
-
 const styles = StyleSheet.create({
-   headerContainer: {
+  headerContainer: {
     gap: 20,
   },
   headerTop: {
@@ -132,9 +167,9 @@ const styles = StyleSheet.create({
     height: 200,
   },
   heroImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    width: width,
+    height: 200,
+    resizeMode: 'contain',
     borderRadius: 20,
   },
   categoriesContainer: {},
@@ -171,4 +206,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-})
+});
