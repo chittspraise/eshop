@@ -1,26 +1,21 @@
-
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Alert,
   Platform,
   TouchableOpacity,
   FlatList,
   Image,
+  StyleSheet,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-
 import { useCartStore } from './cart-store';
 import { createOrder, createOrderItem } from './api/api';
 import { openStripeCheckout, setupStripePaymentSheet } from './lib/stripe';
 import { useWallet } from './Providers/Wallet-provider';
 import { useNavigation } from 'expo-router';
-import{supabase} from './lib/supabase'
-
-
-
+import { supabase } from './lib/supabase';
 
 type CartItemType = {
   id: number;
@@ -28,7 +23,6 @@ type CartItemType = {
   heroImage: string;
   price: number;
   quantity: number;
-
 };
 
 type CartItemProps = {
@@ -77,8 +71,6 @@ const CartItem = ({
   );
 };
 
-
-
 export default function Cart() {
   const {
     items,
@@ -92,133 +84,68 @@ export default function Cart() {
   const navigation = useNavigation();
   const { mutateAsync: createSupabaseOrder } = createOrder();
   const { mutateAsync: createSupabaseOrderItem } = createOrderItem();
+  const { walletBalance, updateWalletBalance } = useWallet();
 
-  const { walletBalance, updateWalletBalance } = useWallet(); // Assuming updateWalletBalance is available from your wallet context
-
-  // Toggle the wallet status for full or partial payment.
   const [walletToggle, setWalletToggle] = useState(false);
-  
+
   const handleCheckout = async () => {
-    // First, get the current user (adjust this if you have a different method)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       Alert.alert('Error', 'User not logged in');
       return;
     }
-  
-    // Existing checkout logic:
+
     const totalPrice = parseFloat(getTotalPrice());
-    
-    if (walletToggle && (walletBalance ?? 0) >= totalPrice) {
-      // Process order fully with wallet
-      try {
-        await createSupabaseOrder(
-          { totalPrice },
-          {
-            onSuccess: async (data) => {
-              const newWalletBalance = (walletBalance ?? 0) - totalPrice;
-              await updateWalletBalance(newWalletBalance);
-              createSupabaseOrderItem(
-                {
-                  insertData: items.map(item => ({
-                    orderId: data.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                  })),
-                },
-                {
-                  onSuccess: () => {
-                    alert('Order created successfully with full wallet payment');
-                    resetCart();
-                  },
-                }
-              );
-            },
-          }
-        );
-      } catch (error) {
-        console.error(error);
-        alert('An error occurred while creating the order');
-      }
-      return;
-    } else if (walletToggle && (walletBalance ?? 0) < totalPrice) {
-      // Wallet balance is insufficient, process partial payment via Stripe
-      const remainingAmount = totalPrice - (walletBalance ?? 0);
-      try {
-        await setupStripePaymentSheet(Math.floor(remainingAmount * 100));
-        const result = await openStripeCheckout();
-        if (!result) {
-          Alert.alert('An error occurred while processing the payment');
-          return;
+
+    const submitOrder = async () => {
+      await createSupabaseOrder(
+        { totalPrice },
+        {
+          onSuccess: async (data) => {
+            await createSupabaseOrderItem({
+              insertData: items.map(item => ({
+                orderId: data.id,
+                productId: item.id,
+                quantity: item.quantity,
+              })),
+            });
+            alert('Order created successfully');
+            resetCart();
+          },
         }
-        const newWalletBalance = (walletBalance ?? 0) - totalPrice;
-        await updateWalletBalance(newWalletBalance);
-        await createSupabaseOrder(
-          { totalPrice },
-          {
-            onSuccess: data => {
-              createSupabaseOrderItem(
-                {
-                  insertData: items.map(item => ({
-                    orderId: data.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                  })),
-                },
-                {
-                  onSuccess: () => {
-                    alert('Order created successfully');
-                    resetCart();
-                  },
-                }
-              );
-            },
+      );
+    };
+
+    try {
+      if (walletToggle) {
+        if ((walletBalance ?? 0) >= totalPrice) {
+          await updateWalletBalance((walletBalance ?? 0) - totalPrice);
+          await submitOrder();
+        } else {
+          const remaining = totalPrice - (walletBalance ?? 0);
+          await setupStripePaymentSheet(Math.floor(remaining * 100));
+          const result = await openStripeCheckout();
+          if (result) {
+            await updateWalletBalance(0);
+            await submitOrder();
+          } else {
+            Alert.alert('Payment cancelled or failed');
           }
-        );
-      } catch (error) {
-        console.error(error);
-        alert('An error occurred while creating the order');
-      }
-      return;
-    } else if (!walletToggle) {
-      // Wallet toggle is off, use Stripe for full payment
-      try {
+        }
+      } else {
         await setupStripePaymentSheet(Math.floor(totalPrice * 100));
         const result = await openStripeCheckout();
-        if (!result) {
-          Alert.alert('An error occurred while processing the payment');
-          return;
+        if (result) {
+          await submitOrder();
+        } else {
+          Alert.alert('Payment cancelled or failed');
         }
-        await createSupabaseOrder(
-          { totalPrice },
-          {
-            onSuccess: data => {
-              createSupabaseOrderItem(
-                {
-                  insertData: items.map(item => ({
-                    orderId: data.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                  })),
-                },
-                {
-                  onSuccess: () => {
-                    alert('Order created successfully');
-                    resetCart();
-                  },
-                }
-              );
-            },
-          }
-        );
-      } catch (error) {
-        console.error(error);
-        alert('An error occurred while creating the order');
       }
-      return;
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'An error occurred during checkout.');
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -237,15 +164,16 @@ export default function Cart() {
         )}
         contentContainerStyle={styles.cartList}
       />
-        <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
-        <Text style={{ color: 'red',  marginBottom: 10 }}>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
+        <Text style={{ color: 'red', marginBottom: 10 }}>
           Please make sure your Address is correct or set it here
         </Text>
-        </TouchableOpacity>
+      </TouchableOpacity>
+
       <View style={styles.footer}>
         <Text style={styles.totalText}>Total: R{getTotalPrice()}</Text>
 
-        {/* Wallet Payment Toggle */}
         <View style={styles.walletToggleContainer}>
           <TouchableOpacity
             style={styles.walletToggleButton}
@@ -264,20 +192,17 @@ export default function Cart() {
 
         <TouchableOpacity
           onPress={async () => {
-            // First, get the current user (adjust this if you have a different method)
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
               Alert.alert('Error', 'User not logged in');
               return;
             }
 
-            // Query the profile table for the "address" column (your address)
             const { data: profileData, error: profileError } = await supabase
-            .from('profile')
-            .select('address')
-            .eq('user_id', user.id) // Use 'user_id' instead of 'id'
-            .single();
-          
+              .from('profile')
+              .select('address')
+              .eq('user_id', user.id)
+              .single();
 
             if (profileError) {
               console.error('Error fetching profile:', profileError);
@@ -286,12 +211,10 @@ export default function Cart() {
             }
 
             if (!profileData.address) {
-              // Navigate to Delivery Address screen if no address is set
               navigation.navigate('Deliveryaddress' as never);
               return;
             }
 
-            // Proceed with checkout if address is set
             handleCheckout();
           }}
           style={styles.checkoutButton}
@@ -302,6 +225,7 @@ export default function Cart() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

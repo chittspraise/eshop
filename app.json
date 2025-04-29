@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "eshop",
-    "scheme": "eshop",
     "slug": "eshop",
+    "scheme": "eshop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -13,14 +13,29 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chitts.eshop",
+      "associatedDomains": [
+        "applinks:eshop"
+      ]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.chitts.eshop"
+      "package": "com.chitts.eshop",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "eshop"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
