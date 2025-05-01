@@ -1,72 +1,75 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { ToastProvider } from 'react-native-toast-notifications';
 import AuthProvider from './Providers/auth-provider';
 import QueryProvider from './Providers/query-provider';
 import { StripeProvider } from '@stripe/stripe-react-native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Platform, SafeAreaView } from 'react-native';
 import { useBackHandler } from '@react-native-community/hooks';
 import NotificationProvider from './Providers/notification-provider';
 import { WalletProvider } from './Providers/Wallet-provider';
 import * as Linking from 'expo-linking';
+import { supabase } from './lib/supabase';
 
 export default function RootLayout() {
   const router = useRouter();
-
-  useBackHandler(() => {
-    return false;
-  });
+  const pathname = usePathname();
+  const [loading, setLoading] = useState(true);
+  useBackHandler(() => false);
 
   useEffect(() => {
-    const handleDeepLink = ({ url }: { url: string }) => {
-      if (!url) return;
-    
-      let parsedUrl = Linking.parse(url);
-      let path = parsedUrl.path;
-      let queryParams = parsedUrl.queryParams ?? {};
-    
-      // Manually extract params from the hash if present
-      if (url.includes('#')) {
-        const hashParams = url.split('#')[1];
-        const pairs = hashParams.split('&');
-        pairs.forEach(pair => {
-          const [key, value] = pair.split('=');
-          if (key && value) {
-            queryParams[key] = decodeURIComponent(value);
-          }
-        });
+    let didRestore = false;
+  
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      const link = url.includes('#') ? url.replace('#', '?') : url;
+      const { path, queryParams = {} } = Linking.parse(link);
+  
+      const at = queryParams?.access_token as string | undefined;
+      const rt = queryParams?.refresh_token as string | undefined;
+  
+      if (at && rt) {
+        const { error: sessionErr } = await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+        if (sessionErr) console.error('Session restore error', sessionErr.message);
       }
-    
-      console.log('Deep link received:', url, 'Parsed path:', path, queryParams);
-    
+  
+      if (!didRestore) {
+        setLoading(false);
+        didRestore = true;
+      }
+  
       if (path === 'new-password') {
         router.push({
           pathname: '/new-password',
-          params: queryParams,
+          params: queryParams && Object.keys(queryParams).length ? queryParams : undefined,
         });
       }
     };
-    
-    const checkInitialUrl = async () => {
+  
+    (async () => {
       const url = await Linking.getInitialURL();
       if (url) {
-        handleDeepLink({ url });
-      } else {
-        console.log('No initial URL');
+        await handleDeepLink({ url });
+      } else if (pathname !== '/new-password') {
+        setLoading(false);
       }
-    };
+    })();
   
-    checkInitialUrl();
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => sub.remove();
+  }, [router, pathname]);
   
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-    return () => subscription.remove();
-  }, []);
-  
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
+        <StatusBar style="light" backgroundColor="#000" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <StatusBar style="light" backgroundColor="#000000" />
+      <StatusBar style="light" backgroundColor="#000" />
       <SafeAreaView style={{ flex: 1, paddingTop: Platform.OS === 'android' ? 25 : 0 }}>
         <ToastProvider>
           <AuthProvider>
@@ -82,36 +85,10 @@ export default function RootLayout() {
                         headerTintColor: '#000',
                       }}
                     >
-                      <Stack.Screen
-                        name='(shop)'
-                        options={{
-                          headerShown: false,
-                          title: 'Shop',
-                        }}
-                      />
-                      {/* Other screens */}
-                     
-                      <Stack.Screen
-                        name='passwordreset'
-                        options={{
-                          headerShown: false,
-                          title: 'passwordreset',
-                        }}
-                      />
-                       <Stack.Screen
-                        name='new-password'
-                        options={{
-                          headerShown: false,
-                          title: 'New Password',
-                        }}
-                      />
-                       <Stack.Screen
-                        name='auth'
-                        options={{
-                          headerShown: false,
-                          title: 'Auth',
-                        }}
-                      />
+                      <Stack.Screen name="(shop)" options={{ headerShown: false, title: 'Shop' }} />
+                      <Stack.Screen name="passwordreset" options={{ headerShown: false, title: 'Password Reset' }} />
+                      <Stack.Screen name="new-password" options={{ headerShown: false, title: 'New Password' }} />
+                      <Stack.Screen name="auth" options={{ headerShown: false, title: 'Auth' }} />
                     </Stack>
                   </NotificationProvider>
                 </StripeProvider>

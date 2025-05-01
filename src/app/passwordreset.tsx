@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Toast } from 'react-native-toast-notifications';
-import { supabase } from './lib/supabase'; // Adjust if your supabase client path differs
+import { supabase } from './lib/supabase'; // Adjust if needed
 
 export default function PasswordReset() {
   const [email, setEmail] = useState('');
@@ -21,12 +28,17 @@ export default function PasswordReset() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'eshop://new-password', // must match your mobile app linking!
+        redirectTo: 'eshop://new-password', // Your app's deep link
       });
 
       if (error) {
         console.error('Reset password error:', error.message);
-        Toast.show(error.message || 'Error sending reset link', {
+        const message =
+          error.message === 'User not found'
+            ? 'Email not registered'
+            : error.message || 'Error sending reset link';
+
+        Toast.show(message, {
           type: 'danger',
           placement: 'top',
           duration: 2000,
@@ -51,6 +63,7 @@ export default function PasswordReset() {
   };
 
   return (
+    
     <View style={styles.container}>
       <Text style={styles.title}>Reset Your Password</Text>
 

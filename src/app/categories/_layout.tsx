@@ -9,7 +9,7 @@ export default function CategoryLayout() {
       <Stack.Screen
         name='[slug]'
         options={({ navigation }) => ({
-          headerShown: true,
+          headerShown: false,
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 10 }}>
               <Ionicons name='arrow-back' size={24} color='black' />

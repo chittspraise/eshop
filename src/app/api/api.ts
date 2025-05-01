@@ -101,18 +101,30 @@ export const getMyProfile = () => {
 
   return useQuery({
     queryKey: ['my-profile', id],
+    enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profile')
         .select('user_id, wallet_balance, address, first_name, phone_number')
-        .eq('user_id', id)  // Corrected field to match user_id in the profile table
-        .single();
+        .eq('user_id', id)
+        .maybeSingle();
 
-      if (error) throw new Error('Failed to fetch profile: ' + error.message);
+      if (error) {
+        console.error('Profile fetch error:', error.message);
+        throw new Error('Failed to fetch profile: ' + error.message);
+      }
+
+      if (!data) {
+        console.warn('No profile found for user:', id);
+        return null;
+      }
+
+      console.log('Fetched profile data:', data);
       return data;
     },
   });
 };
+
 
 
 export const createOrder = () => {
@@ -212,17 +224,18 @@ export const upsertMyProfile = () => {
       address?: string;
       first_name?: string;
       phone_number?: string;
+      email?: string;
     }) => {
       if (!user || !user.id) {
-        throw new Error('User is not authenticated');  // Handle case where user is null
+        throw new Error('User is not authenticated');
       }
 
       const { data, error } = await supabase
         .from('profile')
         .upsert({
-          id: user.id,  // Now using user.id safely
+          user_id: user.id,  // ✅ Use the correct column for UUID
           ...profileData,
-        })
+        }, { onConflict: 'user_id' }) // Optional: Ensure upsert is based on `user_id`
         .select('*')
         .single();
 
@@ -231,7 +244,7 @@ export const upsertMyProfile = () => {
     },
 
     onSuccess: async () => {
-      if (user?.id) {  // Check user id before invalidating queries
+      if (user?.id) {
         await queryClient.invalidateQueries({ queryKey: ['my-profile', user.id] });
       }
     },

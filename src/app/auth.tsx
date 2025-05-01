@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ImageBackground, TextInput, TouchableOpacity } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import * as zod from 'zod';
@@ -19,6 +19,9 @@ const signUpSchema = signInSchema.extend({
   phone_number: zod.string().min(10, { message: 'Phone number must be at least 10 characters' }),
 });
 
+type SignInData = zod.infer<typeof signInSchema>;
+type SignUpData = zod.infer<typeof signUpSchema>;
+
 export default function Auth() {
   const { session } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -35,7 +38,7 @@ export default function Auth() {
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (session) {
       setRedirect(true);
     }
@@ -45,8 +48,12 @@ export default function Auth() {
     return <Redirect href="/" />;
   }
 
-  const signIn = async (data: zod.infer<typeof signInSchema>) => {
-    const { error } = await supabase.auth.signInWithPassword(data);
+  const signIn = async (data: SignInData) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
     if (error) {
       alert(error.message);
     } else {
@@ -58,16 +65,45 @@ export default function Auth() {
     }
   };
 
-  const signUp = async (data: zod.infer<typeof signUpSchema>) => {
-    const { error } = await supabase.auth.signUp(data);
+  const createProfile = async (userId: string, data: SignUpData) => {
+    const { error } = await supabase
+      .from('profile')
+      .insert({
+        user_id: userId,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone_number: data.phone_number,
+        email: data.email,
+      });
+
+    if (error) {
+      alert(`Error creating profile: ${error.message}`);
+    } else {
+      Toast.show('Profile created successfully', {
+        type: 'success',
+        placement: 'top',
+        duration: 1500,
+      });
+    }
+  };
+
+  const signUp = async (data: SignUpData) => {
+    const { data: signUpResponse, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+
     if (error) {
       alert(error.message);
-    } else {
+    } else if (signUpResponse.user?.id) {
+      await createProfile(signUpResponse.user.id, data);
       Toast.show('Signed up successfully', {
         type: 'success',
         placement: 'top',
         duration: 1500,
       });
+    } else {
+      alert('User creation succeeded but user ID not returned.');
     }
   };
 
@@ -200,11 +236,11 @@ export default function Auth() {
           </Text>
         </TouchableOpacity>
 
-  <Link href="/passwordreset" asChild>
-  <TouchableOpacity style={styles.forgotButton}>
-    <Text style={styles.buttonText}>Forgot your password?</Text>
-  </TouchableOpacity>
-    </Link>
+        <Link href="/passwordreset" asChild>
+          <TouchableOpacity style={styles.forgotButton}>
+            <Text style={styles.buttonText}>Forgot your password?</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </ImageBackground>
   );
@@ -216,8 +252,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16, width: '100%' },
   title: { fontSize: 36, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   subtitle: { fontSize: 18, color: '#ddd', marginBottom: 32 },
-  input: { width: '90%', padding: 12, marginBottom: 16, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 8, fontSize: 16, color: '#000' },
-  button: { backgroundColor: 'green', padding: 16, borderRadius: 8, marginBottom: 16, width: '90%', alignItems: 'center' },
+  input: {
+    width: '90%',
+    padding: 12,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    fontSize: 16,
+    color: '#000',
+  },
+  button: {
+    backgroundColor: 'green',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    width: '90%',
+    alignItems: 'center',
+  },
   toggleButton: { backgroundColor: 'transparent', borderColor: '#fff', borderWidth: 1 },
   buttonText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   error: { color: 'red', fontSize: 12, marginTop: 4 },

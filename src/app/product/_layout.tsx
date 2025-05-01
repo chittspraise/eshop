@@ -20,7 +20,7 @@ export default function ProductLayout() {
       <Stack.Screen
         name='[slug]'
         options={{
-          headerShown: true,
+          headerShown: false,
           headerLeft: () => <CustomBackButton />,
           headerTitleAlign: 'center',
         }}

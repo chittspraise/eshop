@@ -1,140 +1,102 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Text as RNText } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Toast } from 'react-native-toast-notifications';
-import { supabase } from './lib/supabase';
+import { supabase } from './lib/supabase';    // your AsyncStorage-backed client
+import { useRouter } from 'expo-router';
 
 export default function NewPassword() {
-  const [newPassword, setNewPassword] = useState('');
+  const router = useRouter();
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const handleInitialUrl = async () => {
-      const url = await Linking.getInitialURL();
-      console.log('Initial URL:', url);
+    (async () => {
+      let url = await Linking.getInitialURL();
+      if (url?.includes('#')) url = url.replace('#', '?');
+      if (!url) {
+        setLoading(false);
+        return;
+      }
 
-      if (url) {
-        const parsed = Linking.parse(url);
-        console.log('Parsed URL:', parsed);
-
-        if (parsed.queryParams?.access_token && parsed.queryParams?.refresh_token) {
-          setAccessToken(parsed.queryParams.access_token as string);
-          setRefreshToken(parsed.queryParams.refresh_token as string);
-
-          // Set session immediately
-          await supabase.auth.setSession({
-            access_token: parsed.queryParams.access_token as string,
-            refresh_token: parsed.queryParams.refresh_token as string,
-          });
-        } else {
-          Toast.show('Missing reset access token!', { type: 'danger', placement: 'top' });
-        }
+      const { queryParams } = Linking.parse(url);
+      const at = queryParams?.access_token as string | undefined;
+      const rt = queryParams?.refresh_token as string | undefined;
+      if (at && rt) {
+        const { error: sessErr } = await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+        if (sessErr) Toast.show(sessErr.message, { type: 'danger', placement: 'top' });
       } else {
-        Toast.show('No URL detected', { type: 'danger', placement: 'top' });
+        Toast.show('Missing tokens in link', { type: 'danger', placement: 'top' });
       }
       setLoading(false);
-    };
-
-    handleInitialUrl();
+    })();
   }, []);
 
-  const handleSubmit = async () => {
-    if (!newPassword.trim()) {
-      Toast.show('Enter a new password', { type: 'danger', placement: 'top' });
-      return;
-    }
+  const handleUpdate = async () => {
+    setError('');
+    if (!password) { setError('Enter a new password'); return; }
 
     setSubmitting(true);
-
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
-
-    if (error) {
-      console.error('Password update error:', error.message);
-      Toast.show(error.message || 'Failed to update password', { type: 'danger', placement: 'top' });
-    } else {
-      Toast.show('Password updated successfully!', { type: 'success', placement: 'top' });
-      // Optionally navigate to login screen
-    }
-
+    const { error: upErr } = await supabase.auth.updateUser({ password });
     setSubmitting(false);
+
+    if (upErr) {
+      setError(upErr.message);
+      Toast.show(upErr.message, { type: 'danger', placement: 'top' });
+    } else {
+      Toast.show('Password updated!', { type: 'success', placement: 'top' });
+      router.replace('/');   // ← navigate home
+    }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0a84ff" />
-      </View>
-    );
-  }
+  if (loading) return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#0a84ff" />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Set a New Password</Text>
-
+      <RNText style={styles.title}>Set New Password</RNText>
       <TextInput
-        style={styles.input}
-        placeholder="New password"
-        placeholderTextColor="#999"
         secureTextEntry
-        value={newPassword}
-        onChangeText={setNewPassword}
+        placeholder="New password"
+        placeholderTextColor="#888"
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
       />
-
+      <TextInput
+        secureTextEntry
+        placeholder="Confirm password"
+        placeholderTextColor="#888"
+        style={styles.input}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+      {error ? <RNText style={styles.error}>{error}</RNText> : null}
       <TouchableOpacity
         style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
+        onPress={handleUpdate}
         disabled={submitting}
       >
-        {submitting ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : (
-          <Text style={styles.buttonText}>Update Password</Text>
-        )}
+        {submitting 
+          ? <ActivityIndicator color="#fff" /> 
+          : <RNText style={styles.buttonText}>Update Password</RNText>}
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 30,
-  },
-  input: {
-    width: '90%',
-    padding: 14,
-    marginBottom: 20,
-    backgroundColor: '#1c1c1e',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#0a84ff',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    width: '90%',
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#555',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 20 },
+  title: { fontSize: 24, color: '#fff', marginBottom: 20 },
+  input: { width: '100%', padding: 12, backgroundColor: '#222', borderRadius: 6, color: '#fff', marginBottom: 12 },
+  error: { color: 'red', marginBottom: 12 },
+  button: { width: '100%', padding: 14, backgroundColor: '#0a84ff', borderRadius: 6, alignItems: 'center' },
+  buttonDisabled: { backgroundColor: '#555' },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
 });
