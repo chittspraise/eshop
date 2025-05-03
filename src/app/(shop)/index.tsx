@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import{ ListHeader } from '../components/list-header';
 import { ProductListItem } from '../components/product-list-item';
 import { getProductsAndCategories } from '../api/api';
@@ -15,8 +15,9 @@ const Home = () => {
 
  
   return (  
+    
      
-    <View>
+       <View>
       <FlatList 
         data={data.products}
         renderItem={({item}) => <ProductListItem product={item} />}
@@ -29,6 +30,7 @@ const Home = () => {
       />
     
     </View> 
+
     );
     
   };
@@ -41,6 +43,21 @@ const styles = StyleSheet.create({
   },
   flatListColumn: {
     justifyContent: 'space-between',
+  },
+  backgroundImage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });
 

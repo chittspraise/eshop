@@ -140,9 +140,9 @@ const handleSave = async () => {
             >
               <Image
                 source={{ uri: 'https://img.icons8.com/ios-filled/50/000000/privacy.png' }}
-                style={styles.icon}
+                style={styles.iconpolicy}
               />
-              <Text style={styles.subText}>Privacy Policy</Text>
+              <Text style={styles.subTextPolicy}>Privacy Policy</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.subItem}
@@ -155,6 +155,7 @@ const handleSave = async () => {
               <Text style={styles.subText}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
+          
           <View style={styles.divider} />
           <Text style={styles.footer}>© eShop Corporate 2025</Text>
         </View>
@@ -252,6 +253,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
+  subTextPolicy: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+    paddingLeft: 10,
+  },
   iconSmall: {
     width: 24,
     height: 24,
@@ -260,7 +267,13 @@ const styles = StyleSheet.create({
   icon: {
     width: 20,
     height: 20,
-    marginRight: 8,
+    marginRight: 10,
+    tintColor: 'green',
+  },
+  iconpolicy: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
     tintColor: 'green',
   },
   rowRight: {

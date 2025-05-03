@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, color: '#fff', marginBottom: 20 },
   input: { width: '100%', padding: 12, backgroundColor: '#222', borderRadius: 6, color: '#fff', marginBottom: 12 },
   error: { color: 'red', marginBottom: 12 },
-  button: { width: '100%', padding: 14, backgroundColor: '#0a84ff', borderRadius: 6, alignItems: 'center' },
+  button: { width: '100%', padding: 14, backgroundColor: 'green', borderRadius: 6, alignItems: 'center' },
   buttonDisabled: { backgroundColor: '#555' },
   buttonText: { color: '#fff', fontWeight: 'bold' },
 });

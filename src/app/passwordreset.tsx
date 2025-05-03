@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#0a84ff',
+    backgroundColor: 'green',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -129,6 +129,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: 'white',
   },
 });

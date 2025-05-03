@@ -51,7 +51,10 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
               ) : error ? (
                 <Text style={styles.avatarText}>Error loading profile</Text>
               ) : (
-                <Text style={styles.avatarText}>Hello, {profile?.first_name}</Text>
+                <Text style={styles.avatarText}>
+                <Text style={styles.name}>Hello,{profile?.first_name}</Text>
+                  
+                </Text>
               )}
             </View>
           </View>
@@ -204,6 +207,10 @@ const styles = StyleSheet.create({
   badgeText: {
     color: 'white',
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  name: {
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
