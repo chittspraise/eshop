@@ -83,9 +83,11 @@ const OrderDetails = () => {
 
       <View style={styles.footer}>
         <View style={styles.horizontalLine} />
+        {order.status !== 'Received' && (
         <Text style={styles.refundText}>
           Refund: R{order.refunded_amount ?? '0.00'}
         </Text>
+        )}
       </View>
     </View>
   );

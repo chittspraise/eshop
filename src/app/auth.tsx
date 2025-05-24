@@ -24,7 +24,7 @@ type SignUpData = zod.infer<typeof signUpSchema>;
 
 export default function Auth() {
   const { session } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false); 
   const [redirect, setRedirect] = useState(false);
 
   const { control, handleSubmit, formState } = useForm({

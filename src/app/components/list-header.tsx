@@ -6,7 +6,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useCartStore } from '../cart-store';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../../types/database.types';
-import { getMyProfile } from '../api/api';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +19,6 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
   const { getItemCount } = useCartStore();
   const flatListRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
-  const { data: profile, isLoading, error } = getMyProfile(); // Destructure loading & error
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -46,16 +44,7 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
                 source={{ uri: 'https://via.placeholder.com/40' }}
                 style={styles.avatarImage}
               />
-              {isLoading ? (
-                <ActivityIndicator size="small" color="gray" />
-              ) : error ? (
-                <Text style={styles.avatarText}>Error loading profile</Text>
-              ) : (
-                <Text style={styles.avatarText}>
-                <Text style={styles.name}>Hello,{profile?.first_name}</Text>
-                  
-                </Text>
-              )}
+            
             </View>
           </View>
 

@@ -92,9 +92,9 @@ export default function RootLayout() {
                         <Stack.Screen name="new-password" options={{ headerShown: false, title: 'New Password' }} />
                         <Stack.Screen name="auth" options={{ headerShown: false, title: 'Auth' }} />
                         <Stack.Screen name="product" options={{ headerShown: false, title: 'New Password' }} />
-                        <Stack.Screen name="categories" options={{ headerShown: false, title: 'Auth' }} />
-
+                        <Stack.Screen name="categories" options={{ headerShown: false, title: 'categories' }} />
                         <Stack.Screen name="cart" options={{ headerShown: false, title: 'cart' }} />
+                        <Stack.Screen name="Deliveryaddress" options={{ headerShown: true, title: 'My Address' }} />
                       </Stack>
 
                       {/* Floating cart overlay rendered here */}

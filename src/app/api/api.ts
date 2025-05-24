@@ -105,7 +105,7 @@ export const getMyProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profile')
-        .select('user_id, wallet_balance, address, first_name, phone_number')
+        .select('user_id, wallet_balance, address, first_name, phone_number,delivery_note')
         .eq('user_id', id)
         .maybeSingle();
 

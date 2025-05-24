@@ -85,14 +85,12 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profile' }, async (payload) => {
         const { data: user } = await supabase.auth.getUser();
         if (payload.new.user_id === user?.user?.id) {
-          console.log('New wallet balance inserted!', payload);
           setWalletBalance(payload.new.wallet_balance); // Update wallet balance
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profile' }, async (payload) => {
         const { data: user } = await supabase.auth.getUser();
         if (payload.new.user_id === user?.user?.id) {
-          console.log('Wallet balance updated!', payload);
           setWalletBalance(payload.new.wallet_balance); // Update wallet balance
         }
       })
