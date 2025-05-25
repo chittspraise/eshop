@@ -1,11 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View, FlatList, Dimensions, ActivityIndicator } from 'react-native';
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+} from 'react-native';
 import { Link } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 
 import { useCartStore } from '../cart-store';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../../types/database.types';
+import { getMyProfile } from '../api/api';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +30,7 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
   const { getItemCount } = useCartStore();
   const flatListRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
+  const { data: profile, isLoading, error } = getMyProfile();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -39,13 +51,11 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
       <View style={styles.headerContainer}>
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: 'https://via.placeholder.com/40' }}
-                style={styles.avatarImage}
-              />
-            
-            </View>
+            {isLoading && <ActivityIndicator />}
+            {error && <Text>Error loading profile</Text>}
+            {profile?.first_name && (
+              <Text style={styles.name}>Welcome, {profile.first_name}</Text>
+            )}
           </View>
 
           <View style={styles.headerRight}>
@@ -60,9 +70,7 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
                     <View style={styles.badgeContainer}>
-                      <Text style={styles.badgeText}>
-                        {getItemCount()}
-                      </Text>
+                      <Text style={styles.badgeText}>{getItemCount()}</Text>
                     </View>
                   </View>
                 )}
@@ -73,45 +81,47 @@ export const ListHeader = ({ categories }: { categories: Tables<'category'>[] })
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        {/* Image Carousel */}
-        <View style={styles.heroContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={heroImages}
-            keyExtractor={(_, i) => i.toString()}
-            horizontal
-            pagingEnabled
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <Image source={item} style={styles.heroImage} />
-            )}
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
+      {/* Image Carousel */}
+      <View style={styles.heroContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={heroImages}
+          keyExtractor={(_, i) => i.toString()}
+          horizontal
+          pagingEnabled
+          scrollEnabled={false}
+          renderItem={({ item }) => (
+            <Image source={item} style={styles.heroImage} />
+          )}
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
 
-        {/* Categories */}
-        <View style={styles.categoriesContainer}>
-          <Text style={styles.sectionTitle}>Categories</Text>
-          <FlatList
-            data={categories}
-            renderItem={({ item }) => (
-              <Link asChild href={`/categories/${item.slug}`}>
-                <Pressable style={styles.category}>
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.categoryImage}
-                    onError={(error) => console.log('Image failed to load', error.nativeEvent)}
-                  />
-                  <Text style={styles.categoryText}>{item.name}</Text>
-                </Pressable>
-              </Link>
-            )}
-            keyExtractor={(item) => item.name}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
+      {/* Categories */}
+      <View style={styles.categoriesContainer}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+        <FlatList
+          data={categories}
+          renderItem={({ item }) => (
+            <Link asChild href={`/categories/${item.slug}`}>
+              <Pressable style={styles.category}>
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.categoryImage}
+                  onError={(error) =>
+                    console.log('Image failed to load', error.nativeEvent)
+                  }
+                />
+                <Text style={styles.categoryText}>{item.name}</Text>
+              </Pressable>
+            </Link>
+          )}
+          keyExtractor={(item) => item.name}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
       </View>
     </View>
   );
@@ -125,6 +135,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -133,20 +145,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  avatarText: {
-    fontSize: 16,
+    gap: 10,
   },
   cartContainer: {
     padding: 10,
@@ -164,7 +163,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     borderRadius: 20,
   },
-  categoriesContainer: {},
+  categoriesContainer: {
+    paddingHorizontal: 10,
+    marginTop: 20,
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -174,6 +176,7 @@ const styles = StyleSheet.create({
     width: 100,
     alignItems: 'center',
     marginBottom: 16,
+    marginRight: 10,
   },
   categoryImage: {
     width: 60,
@@ -181,11 +184,14 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginBottom: 8,
   },
-  categoryText: {},
+  categoryText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
   badgeContainer: {
     position: 'absolute',
     top: -5,
-    right: 10,
+    right: 5,
     backgroundColor: '#1BC464',
     borderRadius: 10,
     width: 20,

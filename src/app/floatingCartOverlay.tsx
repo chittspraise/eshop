@@ -1,24 +1,24 @@
-// components/FloatingCartOverlay.tsx
-'use client'
-
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
   PanResponder,
+  View,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useCartStore } from './cart-store';
+import { useAuth } from './Providers/auth-provider';
 
 const FloatingCartOverlay = () => {
-  //── Hooks (always run, in this order) ──────────────────────────────────────
   const router = useRouter();
   const pathname = usePathname();
   const { items, getTotalPrice } = useCartStore();
+  const { session } = useAuth();
 
-  // Animated value and panResponder also hooks (useRef)
+  const [visible, setVisible] = useState(true);  // <-- added visibility state
+
   const pan = React.useRef(new Animated.ValueXY({ x: 20, y: 100 })).current;
   const panResponder = React.useRef(
     PanResponder.create({
@@ -40,28 +40,36 @@ const FloatingCartOverlay = () => {
     })
   ).current;
 
-  //── Derived values ─────────────────────────────────────────────────────────
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = getTotalPrice();
 
-  //── Early returns (after hooks) ────────────────────────────────────────────
-  if (pathname === '/cart') return null;    // hide on cart screen
-  if (totalCount === 0) return null;         // hide when cart empty
+  if (!visible) return null;  // <-- hide if dismissed
+  if (pathname === '/cart' || pathname === '/Deliveryaddress') return null;
+  if (totalCount === 0) return null;
+  if (!session) return null;
 
-  //── Render draggable/floating cart button ─────────────────────────────────
   return (
     <Animated.View
       {...panResponder.panHandlers}
       style={[styles.container, pan.getLayout()]}
     >
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push('/cart')}
-      >
-        <Text style={styles.text}>
-          🛒 {totalCount} | R{parseFloat(totalPrice).toFixed(2)}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.wrapper}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/cart')}
+        >
+          <Text style={styles.text}>
+            🛒 {totalCount} | R{parseFloat(totalPrice).toFixed(2)}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setVisible(false)}
+          style={styles.closeButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.closeText}>×</Text>
+        </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 };
@@ -74,14 +82,37 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     elevation: 10,
   },
-  button: {
+  wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#28a745',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
     borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+  },
+  button: {
+    // no background here since wrapper already has it
+    paddingHorizontal: 10,
   },
   text: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
+  },
+  closeButton: {
+    marginLeft: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeText: {
+    color: 'red',
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 19,
+    textAlign: 'center',
   },
 });

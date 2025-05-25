@@ -1,376 +1,362 @@
-import React, { useEffect, useState, } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
-import { Card, Button } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/Feather';
-import { User } from '@supabase/supabase-js';
-import { useNavigation,  } from 'expo-router';
-import { supabase } from '../../lib/supabase';
-import { useWallet } from '../../Providers/Wallet-provider';
-import SetDeliveryAddress from '../../Deliveryaddress';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Linking,
+  SafeAreaView,
+  Modal,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useAuth } from "../../Providers/auth-provider";
+import { getMyProfile, useUpsertMyProfile } from "../../api/api";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import FeatherIcon from "react-native-vector-icons/Feather";
+import IoniconsIcon from "react-native-vector-icons/Ionicons";
+import { useNavigation } from "expo-router";
+import { supabase } from "../../lib/supabase";
 
+export default function AccountScreen() {
+  const { session, user } = useAuth();
+  const { data: profile, isLoading, error } = getMyProfile();
+  const { mutate: upsertMyProfile } = useUpsertMyProfile();
 
-const AccountScreen = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [firstName, setFirstName] = useState<string | null>('No First Name');
-  const [phoneNumber, setPhoneNumber] = useState<string | null>('No Phone Number');
-  const [address,setAddress]= useState<string | null>('No Address')
-  // Get wallet balance from the WalletProvider context
-  const { walletBalance } = useWallet();
+  const [firstName, setFirstName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
+  const [email, setEmail] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Error fetching user:", error);
-      } else {
-        setUser(data?.user || null);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-  useEffect(() => {
-    const channel = supabase.channel('public:profile')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profile' }, (payload: { new: { user_id: string; address: string } }) => {
-        if (payload.new.user_id === user?.id) {
-          setAddress(payload.new.address || 'No Address');
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-  useEffect(() => {
-    if (user) {
-      const fetchUserMetadata = async () => {
-        const { data: userMetadata, error: metadataError } = await supabase
-          .from('profile')
-          .select('first_name, phone_number, address, delivery_note') // Added delivery_note to the select statement
-          .eq('user_id', user.id);
-
-        if (userMetadata && userMetadata.length > 0) {
-          const singleUser = userMetadata[0];
-          setFirstName(singleUser.first_name || 'No First Name');
-          setPhoneNumber(singleUser.phone_number || 'No Phone Number');
-          setAddress(singleUser.address || 'No Address');
-          SetDeliveryAddress(singleUser.delivery_note||" no dlivery_note")
-        } else {
-          console.error("No user metadata found");
-        }
-
-        try {
-          const { data: userProfile, error } = await supabase.functions.invoke('getMyProfile');
-          if (error) {
-            console.error("Error fetching user profile:", error);
-          } else if (userProfile) {
-            setFirstName(userProfile.first_name || 'No First Name');
-            setPhoneNumber(userProfile.phone_number || 'No Phone Number');
-            setAddress(userProfile.address || 'No Address');
-            setDeliveryNote(userProfile.delivery_note||"no delivery_note")
-
-          }
-        } catch (error) {
-          console.error("Unexpected error fetching user profile:", error);
-        }
-      };
-
-      fetchUserMetadata();
+    if (profile) {
+      setFirstName(profile.first_name || "No First Name");
+      setPhoneNumber(profile.phone_number || "No Phone Number");
+      setAddress(profile.address || "No Address");
+      setDeliveryNote(profile.delivery_note || "No Note");
+      setEmail(user?.email || "");
     }
-  }, [user]);
-
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const handleSavePhoneNumber = async () => {
-    if (user) {
-      const { error } = await supabase
-        .from('profile')
-        .update({ phone_number: newPhoneNumber })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error("Error updating phone number:", error);
-      } else {
-        setPhoneNumber(newPhoneNumber);
-        setModalVisible(false);
+  }, [profile, user]);
+  useEffect(() => {
+  const channel = supabase.channel('public:profile')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profile' }, (payload) => {
+      if (payload.new.user_id === user?.id) {
+        setAddress(payload.new.address || 'No Address');
       }
-    }
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user]);
+
+  const handleSave = () => {
+    upsertMyProfile(
+      {
+        first_name: firstName,
+        phone_number: phoneNumber,
+        address,
+        delivery_note: deliveryNote,
+        email,
+      },
+      {
+        onSuccess: () => {
+          setModalVisible(false);
+          Alert.alert("Profile successfully updated ");
+        },
+        onError: (err) => {
+          console.error("Profile update error:", err);
+          Alert.alert("Error updating profile");
+        },
+      }
+    );
   };
 
-  const [newPhoneNumber, setNewPhoneNumber] = useState(phoneNumber);
+  if (isLoading) return <ActivityIndicator/>;
+  if (error) return <Text>Error loading profile</Text>;
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Profile Section */}
-      <Card style={styles.profileCard}>
-        <View style={styles.profileHeader}>
-          <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-            style={styles.profilePic}
-          />
-          <View style={styles.profileInfo}>
-            <Text style={styles.username}>{firstName}</Text>
-            <Text style={styles.email}>{user?.email || 'No Email Provided'}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerLabel}>My account</Text>
+          <Text style={styles.name}>{firstName}</Text>
+          <Text style={styles.headerLabel}>{email}</Text>
+          <Text style={styles.headerLabel}>{phoneNumber}</Text>
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={styles.editIconContainer}
+          >
+            <FeatherIcon name="edit-2" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Wallet */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Wallet Balance</Text>
+          <View style={styles.row}>
+            <IoniconsIcon name="wallet-outline" size={30} color="#1BC464" />
+            <Text style={styles.walletBalance}>
+              R{profile?.wallet_balance ?? 0}
+            </Text>
           </View>
         </View>
-      </Card>
 
-      {/* Wallet Balance */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.row}>
-            <Icon name="credit-card" size={20} color="#1BC464" />
-            <Text style={styles.sectionTitle}> Wallet Balance</Text>
-          </View>
-          <Text style={styles.balance}>
-            R{walletBalance !== null ? walletBalance.toFixed(2) : '0.00'}
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => alert('Navigate to Add Funds')}
-            style={styles.payOutButton}
-            icon="bank"
-          >
-            Pay Out
-          </Button>
-        </Card.Content>
-      </Card>
-   {/* Delivery Address */}
-  <TouchableOpacity onPress={() => navigation.navigate('Deliveryaddress' as never)}>
-    <Card style={styles.card}>
-      <Card.Content>
-      <View style={styles.row}>
-        <Icon name="home" size={20} color="#1BC464" />
-        <Text style={styles.sectionTitle}> Delivery Address</Text>
-        <Icon name="edit" size={20} color="#1BC464" style={styles.editIcon} />
-      </View>
-      <Text style={styles.detailValue}>{address}</Text>
-      
-      </Card.Content>
-    </Card>
-  </TouchableOpacity>
+        {/* Settings */}
+        <Text style={styles.sectionTitle}>Settings</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Deliveryaddress" as never)}>
+          <Option icon="location-on" label="Delivery address" value={address} />
+          <Option icon="note" label="Delivery note" value={deliveryNote} />
+        </TouchableOpacity>
 
-      <Card style={styles.card}>
-        <Card.Content>
-            <View style={styles.row}>
-            <Icon name="phone" size={20} color="#1BC464" />
-            <Text style={styles.sectionTitle}> Phone Number</Text>
-            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.editIcon}>
-              <Icon name="edit" size={20} color="#1BC464" />
-            </TouchableOpacity>
-            </View>
-            <Modal
-            visible={modalVisible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setModalVisible(false)}
-            >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Edit Phone Number</Text>
-                <TextInput
-                style={[styles.input, { width: '300%' }]}
-                value={newPhoneNumber || ''}
-                onChangeText={setNewPhoneNumber}
-                keyboardType="phone-pad"
-                maxLength={15} // Set a maximum length for the phone number
-                />
-              <Button mode="contained" onPress={handleSavePhoneNumber} style={styles.saveButton}>
-                Save
-              </Button>
-              <Button mode="text" onPress={() => setModalVisible(false)} style={styles.cancelButton}>
-                Cancel
-              </Button>
-              </View>
-            </View>
-            </Modal>
-          <Text style={styles.detailValue}>{phoneNumber}</Text>
-        </Card.Content>
-      </Card>
-    
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.Title}>
-        <Icon name="shopping-bag" size={20} color="#1BC464" />
-        <Text style={styles.sectionTitle}> Shopping Assistant</Text>
-          </View>
-         
-        <TouchableOpacity onPress={() => alert('Navigate to WhatsApp Support')}>
-          <View style={styles.row}>
+        {/* Assistant */}
+        <Text style={styles.sectionTitle}>Shopping Assistant</Text>
+        <TouchableOpacity onPress={() => alert("Navigate to WhatsApp Support")}>
+          <View style={styles.option}>
             <Image
-              source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png' }}
-              style={{ width: 24, height: 24, marginRight: 20 }}
+              source={{
+                uri: "https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png",
+              }}
+              style={styles.whatsappIcon}
             />
-            <Text style={[styles.sectionTitle, { marginLeft: 0, fontSize: 16 }]}> WhatsApp Support</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.optionText}>WhatsApp Support</Text>
+            </View>
+            <Icon name="chevron-right" size={22} color="#888" />
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => alert('Navigate to FAQs')}>
-          <Text style={styles.link}>FAQs</Text>
-        </TouchableOpacity>
-        </Card.Content>
-      </Card>
-      {/* Footer Links */}
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/Policy'))}>
-          <Text style={styles.footerLink}>Privacy Policy</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/TermsAndCondition'))}>
-          <Text style={styles.footerLink}>Terms of Service</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <Option icon="phone" label="Contact details" value={phoneNumber} />
+
+        {/* Support Links */}
+        <Text style={styles.sectionTitle}>Support Links</Text>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://eshopadmin-zeta.vercel.app/Policy")}
+          >
+            <Text style={styles.footerLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL("https://eshopadmin-zeta.vercel.app/TermsAndCondition")
+            }
+          >
+            <Text style={styles.footerLink}>Terms of Service</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Contact Info</Text>
+
+            <TextInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              placeholder="Phone Number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              style={styles.input}
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: "#1BC464" }]}
+                onPress={handleSave}
+              >
+                <Text style={styles.buttonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: "#aaa" }]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
+}
+
+type OptionProps = {
+  icon: string;
+  label: string;
+  value?: string;
 };
+
+function Option({ icon, label, value }: OptionProps) {
+  return (
+    <View style={styles.option}>
+      <Icon name={icon} size={22} color="green" style={styles.optionIcon} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.optionText}>{label}</Text>
+        {value && <Text style={styles.optionValue}>{value}</Text>}
+      </View>
+      <Icon name="chevron-right" size={22} color="#888" />
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: "#fff",
     flex: 1,
-    backgroundColor: '#f7f7f7',
-    padding: 20,
+    paddingHorizontal: 20,
   },
-  profileCard: {
-    padding: 20,
-    borderRadius: 10,
+  header: {
+    backgroundColor: "green",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     marginBottom: 20,
+    position: "relative",
   },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  editIconContainer: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "#1BC464",
+    padding: 8,
+    borderRadius: 20,
   },
-  profilePic: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 15,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  email: {
+  headerLabel: {
+    color: "#ccc",
     fontSize: 14,
-    color: '#888',
-  },
-  card: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 5,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#444',
-    marginLeft: 20,
+  name: {
+    fontSize: 24,
+    color: "#fff",
+    fontWeight: "bold",
   },
-  balance: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1BC464',
-    marginVertical: 10,
-  },
-  payOutButton: {
-    backgroundColor: '#1BC464',
-    marginTop: 10,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: '#333',
-    marginTop: 5,
-    textAlign: "left",  // Ensures all text aligns horizontally
-    height: 24,  // Set a consistent height for all text elements
-    lineHeight: 24,  // Aligns text vertically within the fixed height
-  },
-  
-  link: {
-    color: '#1BC464',
-    textDecorationLine: 'underline',
-    marginVertical: 5,
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
+  card: {
+    backgroundColor: "green",
+    borderRadius: 15,
+    padding: 20,
     marginBottom: 30,
   },
-  divider: {
-    height: 15, 
+  cardTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
-  section: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    elevation: 3, // Adds a shadow effect on Android
-    shadowColor: '#000', // Adds a shadow effect on iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  sectionTitle: {
+    marginTop: 20,
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  option: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderBottomWidth: 0.5,
+    borderColor: "#eee",
+  },
+  optionIcon: {
+    marginRight: 15,
+  },
+  optionText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  optionValue: {
+    fontSize: 13,
+    color: "#666",
+  },
+  whatsappIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 15,
+    borderRadius: 5,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  walletBalance: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  footer: {
+    marginTop: 30,
+    marginBottom: 40,
+    alignItems: "center",
   },
   footerLink: {
-    color: '#1BC464',
-    textDecorationLine: 'underline',
+    color: "green",
+    fontSize: 14,
     marginVertical: 5,
   },
-  editIcon: {
-    marginLeft: 'auto',
-  },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    width: "90%",
+    maxWidth: 400,
+    alignSelf: "center",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
   },
   input: {
-    width: '100%',
-    padding: 10,
+    height: 44,
+    borderColor: "#ccc",
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    fontSize: 16,
   },
-  saveButton: {
-    backgroundColor: '#1BC464',
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 10,
   },
-  cancelButton: {
-    marginTop: 10,
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: "center",
   },
-  Title: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
-
-export default AccountScreen;
-function setDeliveryNote(arg0: any) {
-  throw new Error('Function not implemented.');
-}
-

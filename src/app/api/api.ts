@@ -119,7 +119,6 @@ export const getMyProfile = () => {
         return null;
       }
 
-      console.log('Fetched profile data:', data);
       return data;
     },
   });
@@ -214,8 +213,8 @@ export const getMyOrder = (slug: string) => {
   });
 };
 
-export const upsertMyProfile = () => {
-  const { user } = useAuth();  // Get the user from the context
+export const useUpsertMyProfile = () => {
+  const { user } = useAuth(); 
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -225,6 +224,7 @@ export const upsertMyProfile = () => {
       first_name?: string;
       phone_number?: string;
       email?: string;
+      delivery_note?: string;
     }) => {
       if (!user || !user.id) {
         throw new Error('User is not authenticated');
@@ -232,17 +232,16 @@ export const upsertMyProfile = () => {
 
       const { data, error } = await supabase
         .from('profile')
-        .upsert({
-          user_id: user.id,  // ✅ Use the correct column for UUID
-          ...profileData,
-        }, { onConflict: 'user_id' }) // Optional: Ensure upsert is based on `user_id`
+        .upsert(
+          { user_id: user.id, ...profileData },
+          { onConflict: 'user_id' }
+        )
         .select('*')
         .single();
 
       if (error) throw new Error('Failed to update profile: ' + error.message);
       return data;
     },
-
     onSuccess: async () => {
       if (user?.id) {
         await queryClient.invalidateQueries({ queryKey: ['my-profile', user.id] });
