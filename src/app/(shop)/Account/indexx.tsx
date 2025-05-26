@@ -212,9 +212,7 @@ const AccountScreen = () => {
           <Text style={styles.footerLink}>Privacy Policy</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/TermsAndCondition'))}>
-          <Text style={styles.footerLink}>Terms of Service</Text>
-        </TouchableOpacity>
+       
       </View>
     </ScrollView>
   );

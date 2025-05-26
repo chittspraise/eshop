@@ -18,7 +18,7 @@ import { getMyProfile, useUpsertMyProfile } from "../../api/api";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import FeatherIcon from "react-native-vector-icons/Feather";
 import IoniconsIcon from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "expo-router";
+import { useNavigation ,Link} from "expo-router";
 import { supabase } from "../../lib/supabase";
 
 export default function AccountScreen() {
@@ -48,6 +48,8 @@ export default function AccountScreen() {
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profile' }, (payload) => {
       if (payload.new.user_id === user?.id) {
         setAddress(payload.new.address || 'No Address');
+       setDeliveryNote(payload.new.delivery_note || 'No Note');  // <-- separate setter
+
       }
     })
     .subscribe();
@@ -116,27 +118,16 @@ export default function AccountScreen() {
           <Option icon="location-on" label="Delivery address" value={address} />
           <Option icon="note" label="Delivery note" value={deliveryNote} />
         </TouchableOpacity>
+         <Link href="/passwordreset">
+        <Option icon="lock" label="Reset-Password" />
+         </Link>
 
-        {/* Assistant */}
         <Text style={styles.sectionTitle}>Shopping Assistant</Text>
-        <TouchableOpacity onPress={() => alert("Navigate to WhatsApp Support")}>
-          <View style={styles.option}>
-            <Image
-              source={{
-                uri: "https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png",
-              }}
-              style={styles.whatsappIcon}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionText}>WhatsApp Support</Text>
-            </View>
-            <Icon name="chevron-right" size={22} color="#888" />
-          </View>
-        </TouchableOpacity>
-
-        <Option icon="phone" label="Contact details" value={phoneNumber} />
-
-        {/* Support Links */}
+       
+         <Link href="/Account/contact">
+        <Option icon="phone" label="Contact us" />
+         </Link>
+         
         <Text style={styles.sectionTitle}>Support Links</Text>
         <View style={styles.footer}>
           <TouchableOpacity
@@ -152,6 +143,9 @@ export default function AccountScreen() {
           >
             <Text style={styles.footerLink}>Terms of Service</Text>
           </TouchableOpacity>
+           <TouchableOpacity onPress={()=>(Linking.openURL('https://eshopadmin-zeta.vercel.app/TermsAndCondition'))}>
+          <Text style={styles.footerLink}>FAQ</Text>
+        </TouchableOpacity>
         </View>
       </ScrollView>
 
