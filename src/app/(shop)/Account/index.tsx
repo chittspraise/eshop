@@ -118,13 +118,13 @@ export default function AccountScreen() {
           <Option icon="location-on" label="Delivery address" value={address} />
           <Option icon="note" label="Delivery note" value={deliveryNote} />
         </TouchableOpacity>
-         <Link href="/passwordreset">
+         <Link href="/passwordreset" aschild>
         <Option icon="lock" label="Reset-Password" />
          </Link>
 
         <Text style={styles.sectionTitle}>Shopping Assistant</Text>
        
-         <Link href="/Account/contact">
+         <Link href="/Account/contact" asChild> 
         <Option icon="phone" label="Contact us" />
          </Link>
          

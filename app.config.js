@@ -10,7 +10,7 @@ export default {
     icon: "./assets/images/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/splash.png",
+      image: "./assets/images/Image_Editor.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -26,7 +26,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/Image_Editor.png",
         backgroundColor: "#ffffff"
       },
       package: "com.chitts.eshop",
@@ -36,6 +36,15 @@ export default {
           data: [
             {
               scheme: "eshop"
+            }
+          ],
+          category: ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          action: "VIEW",
+          data: [
+            {
+              scheme: "whatsapp"
             }
           ],
           category: ["BROWSABLE", "DEFAULT"]
