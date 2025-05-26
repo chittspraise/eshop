@@ -118,15 +118,18 @@ export default function AccountScreen() {
           <Option icon="location-on" label="Delivery address" value={address} />
           <Option icon="note" label="Delivery note" value={deliveryNote} />
         </TouchableOpacity>
-         <Link href="/passwordreset" aschild>
-        <Option icon="lock" label="Reset-Password" />
-         </Link>
 
+      <TouchableOpacity onPress={() => navigation.navigate("passwordreset" as never)}>
+       <Option icon="lock" label="Reset-Password" />
+       </TouchableOpacity>
+
+    
         <Text style={styles.sectionTitle}>Shopping Assistant</Text>
-       
-         <Link href="/Account/contact" asChild> 
+        <TouchableOpacity onPress={() => navigation.navigate("contact" as never)}>
+
         <Option icon="phone" label="Contact us" />
-         </Link>
+        </TouchableOpacity>
+        
          
         <Text style={styles.sectionTitle}>Support Links</Text>
         <View style={styles.footer}>
